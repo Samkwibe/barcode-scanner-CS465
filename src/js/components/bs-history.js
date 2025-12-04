@@ -40,17 +40,86 @@ const styles = /* css */ `
 
   ul li {
     position: relative;
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
     align-items: center;
-    gap: 1rem;
-    padding: 0.5rem 0.75rem;
+    gap: 0.75rem;
+    padding: 0.75rem;
     border-bottom: 1px solid var(--border);
     color: var(--text-main);
+    transition: background-color 0.2s ease;
+  }
+
+  ul li:hover {
+    background-color: var(--background, rgba(0, 0, 0, 0.02));
   }
 
   ul li:last-of-type {
     border-bottom: none;
+  }
+
+  ul li.highlight {
+    background-color: rgba(var(--accent-h), var(--accent-s), var(--accent-l), 0.1);
+    animation: pulse 1s ease-out;
+  }
+
+  @keyframes pulse {
+    0%, 100% { background-color: rgba(var(--accent-h), var(--accent-s), var(--accent-l), 0.1); }
+    50% { background-color: rgba(var(--accent-h), var(--accent-s), var(--accent-l), 0.2); }
+  }
+
+  .item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+
+  .item-main {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .item-countdown {
+    padding: 0.125rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .item-countdown.fresh {
+    background-color: rgba(22, 163, 74, 0.1);
+    color: var(--success-color, #16a34a);
+  }
+
+  .item-countdown.expiring {
+    background-color: rgba(217, 119, 6, 0.1);
+    color: var(--warning-color, #d97706);
+  }
+
+  .item-countdown.expired {
+    background-color: rgba(220, 38, 38, 0.1);
+    color: var(--danger-color, #dc2626);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    ul li:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .item-countdown.fresh {
+      background-color: rgba(58, 224, 117, 0.15);
+    }
+
+    .item-countdown.expiring {
+      background-color: rgba(255, 189, 17, 0.15);
+    }
+
+    .item-countdown.expired {
+      background-color: rgba(254, 92, 92, 0.15);
+    }
   }
 
   ul li a {
@@ -69,6 +138,84 @@ const styles = /* css */ `
     -webkit-line-clamp: 4;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    }
+  }
+
+  .search-filter-container {
+    padding: 0.75rem;
+    background-color: var(--background-alt, #f5f5f5);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .search-box {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius, 4px);
+    font-size: 0.9rem;
+    font-family: inherit;
+    margin-bottom: 0.5rem;
+    background-color: var(--background-input, #fff);
+    color: var(--text-main);
+  }
+
+  .search-box:focus {
+    outline: none;
+    border-color: var(--primary-color, #0066cc);
+  }
+
+  .filter-chips {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .filter-chip {
+    padding: 0.25rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background-color: var(--background-input, #fff);
+    color: var(--text-main);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .filter-chip:hover {
+    background-color: var(--background, #e0e0e0);
+  }
+
+  .filter-chip.active {
+    background-color: var(--primary-color, #0066cc);
+    color: white;
+    border-color: var(--primary-color, #0066cc);
+  }
+
+  .no-results {
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .search-filter-container {
+      background-color: #2a2a2a;
+    }
+
+    .search-box {
+      background-color: #1a1a1a;
+    }
+
+    .filter-chip {
+      background-color: #1a1a1a;
+    }
+
+    .filter-chip:hover {
+      background-color: #333;
     }
   }
 
@@ -166,7 +313,25 @@ const template = document.createElement('template');
 
 template.innerHTML = /* html */ `
   <style>${styles}</style>
+  <div class="search-filter-container">
+    <input 
+      type="text" 
+      id="searchBox" 
+      class="search-box" 
+      placeholder="Search scans..."
+      aria-label="Search scans"
+    />
+    <div class="filter-chips">
+      <button type="button" class="filter-chip active" data-filter="all">All</button>
+      <button type="button" class="filter-chip" data-filter="fresh">Fresh</button>
+      <button type="button" class="filter-chip" data-filter="expiring">Expiring Soon</button>
+      <button type="button" class="filter-chip" data-filter="expired">Expired</button>
+    </div>
+  </div>
   <ul id="historyList"></ul>
+  <div id="noResults" class="no-results" hidden>
+    No items found matching your search.
+  </div>
   <footer>
     <div>There are no saved items in history.</div>
     <div style="display:flex;gap:0.5rem;">
@@ -178,6 +343,12 @@ template.innerHTML = /* html */ `
 class BSHistory extends HTMLElement {
   #historyListEl = null;
   #emptyHistoryBtn = null;
+  #searchBoxEl = null;
+  #noResultsEl = null;
+  #filterChips = null;
+  #currentFilter = 'all';
+  #currentSearchTerm = '';
+  #allHistoryData = [];
   
   // Notify a short warning before expiry (ms). 3s works for 5s test items.
   #PRE_NOTIFY_THRESHOLD_MS = 3000;
@@ -231,6 +402,9 @@ class BSHistory extends HTMLElement {
   async connectedCallback() {
     this.#historyListEl = this.shadowRoot?.getElementById('historyList');
     this.#emptyHistoryBtn = this.shadowRoot?.getElementById('emptyHistoryBtn');
+    this.#searchBoxEl = this.shadowRoot?.getElementById('searchBox');
+    this.#noResultsEl = this.shadowRoot?.getElementById('noResults');
+    this.#filterChips = this.shadowRoot?.querySelectorAll('.filter-chip');
     
 
     // Always load from local storage first (this persists across logout)
@@ -350,7 +524,13 @@ class BSHistory extends HTMLElement {
       await setHistory(normalized);
     }
 
-    this.#renderHistoryList(historyData || []);
+    // Store all history data for filtering
+    this.#allHistoryData = historyData || [];
+    
+    this.#renderHistoryList(this.#allHistoryData);
+
+    // Set up search and filter event listeners
+    this.#setupSearchAndFilter();
 
     // If test mode or explicit test expiry seconds set, show an informative toast for quick testing
     try {
@@ -374,10 +554,93 @@ class BSHistory extends HTMLElement {
   disconnectedCallback() {
     this.#historyListEl?.removeEventListener('click', this.#handleHistoryListClick);
     this.#emptyHistoryBtn?.removeEventListener('click', this.#handleEmptyHistoryClick);
-
+    this.#searchBoxEl?.removeEventListener('input', this.#handleSearch);
     
+    this.#filterChips?.forEach(chip => {
+      chip.removeEventListener('click', this.#handleFilterClick);
+    });
 
     this.#stopCountdownTimer();
+  }
+
+  #setupSearchAndFilter() {
+    // Search box event listener
+    this.#searchBoxEl?.addEventListener('input', (e) => this.#handleSearch(e));
+
+    // Filter chips event listeners
+    this.#filterChips?.forEach(chip => {
+      chip.addEventListener('click', (e) => this.#handleFilterClick(e));
+    });
+  }
+
+  #handleSearch = (evt) => {
+    this.#currentSearchTerm = evt.target.value.toLowerCase().trim();
+    this.#applyFilters();
+  };
+
+  #handleFilterClick = (evt) => {
+    const filterValue = evt.target.dataset.filter;
+    this.#currentFilter = filterValue;
+
+    // Update active state
+    this.#filterChips?.forEach(chip => {
+      if (chip.dataset.filter === filterValue) {
+        chip.classList.add('active');
+      } else {
+        chip.classList.remove('active');
+      }
+    });
+
+    this.#applyFilters();
+  };
+
+  #applyFilters() {
+    const now = Date.now();
+    const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+
+    let filteredData = this.#allHistoryData;
+
+    // Apply expiration filter
+    if (this.#currentFilter !== 'all') {
+      filteredData = filteredData.filter(item => {
+        const expiresAt = item.expiresAt || 0;
+        const timeLeft = expiresAt - now;
+
+        switch (this.#currentFilter) {
+          case 'fresh':
+            return timeLeft > SEVEN_DAYS;
+          case 'expiring':
+            return timeLeft > 0 && timeLeft <= SEVEN_DAYS;
+          case 'expired':
+            return timeLeft <= 0;
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Apply search filter
+    if (this.#currentSearchTerm) {
+      filteredData = filteredData.filter(item => {
+        const searchableText = [
+          item.value,
+          item.title,
+          item.brand,
+          item.description
+        ].filter(Boolean).join(' ').toLowerCase();
+
+        return searchableText.includes(this.#currentSearchTerm);
+      });
+    }
+
+    this.#renderHistoryList(filteredData);
+
+    // Show/hide no results message
+    if (filteredData.length === 0 && (this.#currentSearchTerm || this.#currentFilter !== 'all')) {
+      this.#noResultsEl?.removeAttribute('hidden');
+    } else {
+      this.#noResultsEl?.setAttribute('hidden', '');
+    }
   }
 
   /**
@@ -715,7 +978,9 @@ class BSHistory extends HTMLElement {
       await setHistory(normalized);
     }
 
-    this.#renderHistoryList(historyData || []);
+    // Store and render
+    this.#allHistoryData = historyData || [];
+    this.#renderHistoryList(this.#allHistoryData);
   }
 
   /**
@@ -761,6 +1026,8 @@ class BSHistory extends HTMLElement {
     if (title) li.setAttribute('data-title', title);
     if (brand) li.setAttribute('data-brand', brand);
     if (description) li.setAttribute('data-description', description);
+    if (item?.format) li.setAttribute('data-format', item.format);
+    if (item?.addedAt) li.setAttribute('data-added-at', String(item.addedAt));
 
     // Create the main item display - make it clickable
     let historyItem;
@@ -777,6 +1044,13 @@ class BSHistory extends HTMLElement {
       historyItem.setAttribute('data-action', 'view-details');
     }
 
+    // Create item info container
+    const itemInfoEl = document.createElement('div');
+    itemInfoEl.className = 'item-info';
+
+    const itemMainEl = document.createElement('div');
+    itemMainEl.className = 'item-main';
+
     // Show title if available, with barcode below
     if (title) {
       historyItem.innerHTML = `<strong>${title}</strong><br><small>${value}</small>`;
@@ -784,14 +1058,31 @@ class BSHistory extends HTMLElement {
       historyItem.textContent = value;
     }
 
-    // countdown element
+    itemMainEl.appendChild(historyItem);
+    itemInfoEl.appendChild(itemMainEl);
+
+    // countdown element with status styling
+    const now = Date.now();
+    const timeLeft = expiresAt - now;
+    const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+
     const countdownEl = document.createElement('span');
-    countdownEl.className = 'history-countdown';
+    countdownEl.className = 'history-countdown item-countdown';
+    
+    // Add status class
+    if (timeLeft <= 0) {
+      countdownEl.classList.add('expired');
+    } else if (timeLeft <= SEVEN_DAYS) {
+      countdownEl.classList.add('expiring');
+    } else {
+      countdownEl.classList.add('fresh');
+    }
+
     countdownEl.setAttribute('aria-live', 'polite');
     countdownEl.dataset.expiresAt = String(expiresAt);
-    countdownEl.textContent = this.#formatRemaining(expiresAt - Date.now());
+    countdownEl.textContent = this.#formatRemaining(timeLeft);
 
-    li.appendChild(historyItem);
+    li.appendChild(itemInfoEl);
     li.appendChild(countdownEl);
 
     const actionsEl = document.createElement('div');
@@ -846,20 +1137,24 @@ class BSHistory extends HTMLElement {
       const title = listItem.dataset.title || '';
       const brand = listItem.dataset.brand || '';
       const description = listItem.dataset.description || '';
+      const format = listItem.dataset.format || '';
+      const expiresAt = listItem.querySelector('.history-countdown')?.dataset?.expiresAt;
+      const addedAt = listItem.dataset.addedAt;
 
-      // Show details popup
-      const details = [];
-      if (title) details.push(`📦 Product: ${title}`);
-      if (brand) details.push(`🏷️ Brand: ${brand}`);
-      if (description) details.push(`📝 Description: ${description}`);
-      details.push(`🔢 Barcode: ${value}`);
-
-      // If no product info, show a simple message
-      if (!title && !brand && !description) {
-        alert(`Barcode: ${value}\n\n(No product information available)`);
-      } else {
-        alert(details.join('\n\n'));
-      }
+      // Emit event to show product details dialog
+      this.dispatchEvent(new CustomEvent('show-product-details', {
+        bubbles: true,
+        composed: true,
+        detail: {
+          value,
+          title,
+          brand,
+          description,
+          format,
+          expiresAt: expiresAt ? Number(expiresAt) : null,
+          addedAt: addedAt ? Number(addedAt) : null
+        }
+      }));
       return;
     }
   };

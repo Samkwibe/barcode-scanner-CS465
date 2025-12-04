@@ -22,6 +22,8 @@ import './components/bs-result.js';
 import './components/bs-settings.js';
 import './components/bs-history.js';
 import './components/bs-auth.js';
+import './components/bs-scan-confirm.js';
+import './components/bs-product-details.js';
 import { initAuth, signInAnonymous } from './services/firebase-auth.js';
 import { initFirestore, saveScan, syncPendingScans } from './services/firebase-scans.js';
 import { isFirebaseConfigured } from './services/firebase-config.js';
@@ -90,9 +92,14 @@ import { isFirebaseConfigured } from './services/firebase-config.js';
   const settingsDialog = document.getElementById('settingsDialog');
   const settingsForm = document.getElementById('settingsForm');
   const cameraSelect = document.getElementById('cameraSelect');
+  const scanConfirmDialog = document.getElementById('scanConfirmDialog');
+  const scanConfirmEl = document.querySelector('bs-scan-confirm');
+  const productDetailsDialog = document.getElementById('productDetailsDialog');
+  const productDetailsEl = document.querySelector('bs-product-details');
   const SCAN_RATE_LIMIT = 1000;
   let scanTimeoutId = null;
   let shouldScan = true;
+  let pendingScanData = null;
 
   // By default the dialog elements are hidden for browsers that don't support the dialog element.
   // If the dialog element is supported, we remove the hidden attribute and the dialogs' visibility
@@ -175,9 +182,38 @@ import { isFirebaseConfigured } from './services/firebase-config.js';
     if (brand.textContent) itemInfoEl.appendChild(brand);
   }
 
-  async function handleFetchedItemInfo(barcodeValue, panelEl, barcodeFormat = '') {
+  async function handleFetchedItemInfo(barcodeValue, panelEl, barcodeFormat = '', shouldShowConfirm = true) {
     try {
       const info = await fetchItemInfo(barcodeValue);
+      const scanData = {
+        value: barcodeValue,
+        format: barcodeFormat,
+        title: info?.title || info?.name || info?.alias || '',
+        brand: info?.brand || '',
+        description: info?.description || '',
+        image: info?.image || info?.images?.[0] || '',
+        metadata: {
+          source: 'camera',
+          hasProductInfo: !!info
+        }
+      };
+
+      const [, settings] = await getSettings();
+
+      // Check if we should show confirmation dialog
+      if (shouldShowConfirm && settings?.showConfirmDialog !== false) {
+        // Show confirmation dialog
+        pendingScanData = scanData;
+        if (scanConfirmEl && scanConfirmDialog) {
+          await scanConfirmEl.show(scanData);
+          scanConfirmDialog.open = true;
+        }
+        return scanData;
+      }
+
+      // If no confirmation needed, save directly
+      await saveScanData(scanData);
+      
       if (info) {
         const name = info.title || info.name || info.alias || '';
         const desc = info.description || info.brand || '';
@@ -199,56 +235,43 @@ import { isFirebaseConfigured } from './services/firebase-config.js';
         } catch (e) {
           // non-fatal
         }
-
-        // Save scan to Firestore with product info
-        try {
-          await saveScan({
-            value: barcodeValue,
-            format: barcodeFormat,
-            title: info.title || info.name || info.alias || '',
-            brand: info.brand || '',
-            description: info.description || '',
-            metadata: {
-              source: 'camera',
-              hasProductInfo: true
-            }
-          });
-        } catch (saveError) {
-          log.warn('Error saving scan to Firestore:', saveError);
-          // Non-fatal - scan is still saved to local history
-        }
-
-        return info;
-      } else {
-        // Save scan without product info
-        try {
-          await saveScan({
-            value: barcodeValue,
-            format: barcodeFormat,
-            metadata: {
-              source: 'camera',
-              hasProductInfo: false
-            }
-          });
-        } catch (saveError) {
-          log.warn('Error saving scan to Firestore:', saveError);
-        }
       }
+
+      return scanData;
     } catch (err) {
-      // ignore lookup errors but still save scan
-      try {
-        await saveScan({
-          value: barcodeValue,
-          format: barcodeFormat,
-          metadata: {
-            source: 'camera',
-            hasProductInfo: false,
-            lookupFailed: true
-          }
-        });
-      } catch (saveError) {
-        log.warn('Error saving scan to Firestore:', saveError);
+      log.error('Error fetching item info:', err);
+      // Still create scan data even if lookup fails
+      const scanData = {
+        value: barcodeValue,
+        format: barcodeFormat,
+        metadata: {
+          source: 'camera',
+          hasProductInfo: false,
+          lookupFailed: true
+        }
+      };
+
+      const [, settings] = await getSettings();
+      if (settings?.showConfirmDialog !== false) {
+        pendingScanData = scanData;
+        if (scanConfirmEl && scanConfirmDialog) {
+          await scanConfirmEl.show(scanData);
+          scanConfirmDialog.open = true;
+        }
+      } else {
+        await saveScanData(scanData);
       }
+
+      return scanData;
+    }
+  }
+
+  async function saveScanData(scanData) {
+    try {
+      await saveScan(scanData);
+      log.info('Scan saved:', scanData.value);
+    } catch (saveError) {
+      log.warn('Error saving scan to Firestore:', saveError);
     }
   }
 
@@ -781,4 +804,60 @@ import { isFirebaseConfigured } from './services/firebase-config.js';
   document.addEventListener('keydown', handleDocumentKeyDown);
   document.addEventListener('bs-history-success', handleHistorySuccess);
   document.addEventListener('bs-history-error', handleHistoryError);
+
+  // Scan confirmation dialog events
+  document.addEventListener('scan-confirm-save', async (evt) => {
+    const enhancedScanData = evt.detail;
+    
+    if (enhancedScanData) {
+      await saveScanData(enhancedScanData);
+      
+      const [, settings] = await getSettings();
+      if (settings?.addToHistory) {
+        try {
+          await bsHistoryEl?.add(enhancedScanData.value);
+          if (historyDialog) {
+            historyDialog.open = true;
+            setTimeout(() => {
+              try {
+                const li = bsHistoryEl?.shadowRoot?.querySelector(
+                  `li[data-value="${enhancedScanData.value}"]`
+                );
+                li?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                li?.classList?.add('highlight');
+                setTimeout(() => li?.classList?.remove('highlight'), 2000);
+              } catch (e) {
+                // ignore
+              }
+            }, 50);
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      toastify('Scan saved successfully!', { variant: 'success' });
+    }
+
+    scanConfirmDialog.open = false;
+    pendingScanData = null;
+  });
+
+  document.addEventListener('scan-confirm-cancel', () => {
+    scanConfirmDialog.open = false;
+    pendingScanData = null;
+  });
+
+  document.addEventListener('product-details-close', () => {
+    productDetailsDialog.open = false;
+  });
+
+  // Show product details from history
+  document.addEventListener('show-product-details', (evt) => {
+    const productData = evt.detail;
+    if (productDetailsEl && productDetailsDialog) {
+      productDetailsEl.show(productData);
+      productDetailsDialog.open = true;
+    }
+  });
 })();
