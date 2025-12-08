@@ -19,12 +19,16 @@
         "function": "upc"
       },
       {
-        "source": "/landing.html",
-        "destination": "/landing.html"
+        "source": "/app",
+        "destination": "/index.html"
+      },
+      {
+        "source": "/app/**",
+        "destination": "/index.html"
       },
       {
         "source": "**",
-        "destination": "/index.html"
+        "destination": "/landing.html"
       }
     ],
     "headers": [

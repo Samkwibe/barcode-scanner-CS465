@@ -27,6 +27,7 @@ import './components/bs-product-details.js';
 import './components/bs-recipes.js';
 import './components/bs-recipe-details.js';
 import './components/bs-items.js';
+import './components/bs-dashboard.js';
 import { initAuth, signInAnonymous } from './services/firebase-auth.js';
 import { initFirestore, saveScan, syncPendingScans } from './services/firebase-scans.js';
 import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-config.js';
@@ -96,6 +97,7 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
   const videoCaptureEl = document.querySelector('video-capture');
   const bsSettingsEl = document.querySelector('bs-settings');
   const bsHistoryEl = document.querySelector('bs-history');
+  const dashboardEl = document.querySelector('bs-dashboard');
   const cameraPanel = document.getElementById('cameraPanel');
   const cameraResultsEl = cameraPanel.querySelector('.results');
   const filePanel = document.getElementById('filePanel');
@@ -396,6 +398,11 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
       
       log.info('Scan saved to Firestore:', result.scanId);
       toastify('Scan saved successfully!', { variant: 'success' });
+      
+      // Refresh dashboard if available
+      if (dashboardEl && typeof dashboardEl.refresh === 'function') {
+        dashboardEl.refresh();
+      }
     } catch (saveError) {
       log.error('Error saving scan:', saveError);
       toastify('Failed to save scan. Please try again.', { variant: 'danger' });
