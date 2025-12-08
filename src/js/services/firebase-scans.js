@@ -329,3 +329,32 @@ export async function syncPendingScans() {
   }
 }
 
+/**
+ * Get all unique ingredients (product titles) for the current user
+ * Ingredients are extracted from the 'title' field of user scans
+ * @param {number} [maxResults=1000] - Maximum number of scans to check
+ * @returns {Promise<{error: null|Error, ingredients: Array<string>}>}
+ */
+export async function getUserIngredients(maxResults = 1000) {
+  const { error, scans } = await getUserScans(maxResults);
+  
+  if (error) {
+    return { error, ingredients: [] };
+  }
+  
+  const ingredients = [];
+  const seen = new Set(); // For deduplication
+  
+  scans.forEach(scan => {
+    // Use title if available, otherwise fallback to barcode value
+    const title = scan.title || scan.value;
+    if (title && !seen.has(title.toLowerCase())) {
+      ingredients.push(title);
+      seen.add(title.toLowerCase());
+    }
+  });
+  
+  log.info(`Retrieved ${ingredients.length} unique ingredients from ${scans.length} scans`);
+  return { error: null, ingredients };
+}
+
