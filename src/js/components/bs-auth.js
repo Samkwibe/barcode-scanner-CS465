@@ -1,20 +1,13 @@
-import { isFirebaseConfigured, initFirebaseRuntime } from '../services/firebase-config.js';
 import {
   onAuthStateChange,
   signInAnonymous,
   signInWithEmail,
   createAccount,
   signOut,
-  getCurrentUser,
-  isAuthenticated,
-  getUserId
+  getCurrentUser
 } from '../services/firebase-auth.js';
-import { initFirestore } from '../services/firebase-scans.js';
-import { initAuth } from '../services/firebase-auth.js';
-import { isFirebaseConfigured } from '../services/firebase-config.js';
 import { log } from '../utils/log.js';
 import { toastify } from '../helpers/toastify.js';
-import { getFirebaseStatus } from '../utils/firebase-test.js';
 
 const styles = /* css */ `
   :host {
@@ -179,26 +172,6 @@ const styles = /* css */ `
     font-size: 0.875rem;
   }
 
-  .firebase-status {
-    padding: 0.75rem;
-    margin-bottom: 1rem;
-    background-color: #f0f9ff;
-    border: 1px solid #bae6fd;
-    border-radius: var(--border-radius);
-    font-size: 0.875rem;
-  }
-
-  .firebase-status.configured {
-    background-color: #f0fdf4;
-    border-color: #86efac;
-    color: #166534;
-  }
-
-  .firebase-status.error {
-    background-color: #fef2f2;
-    border-color: #fecaca;
-    color: #991b1b;
-  }
 
   .info-message strong {
     display: block;
@@ -280,23 +253,6 @@ template.innerHTML = /* html */ `
     </div>
 
     <div id="authForms" hidden>
-      <div class="firebase-status" id="firebaseStatus">
-        <div class="status-item">
-          <span class="status-icon" id="configIcon">⚙️</span>
-          <span id="configStatus">Checking Firebase configuration...</span>
-        </div>
-      </div>
-
-      <div class="info-message" id="firebaseNotConfigured" hidden>
-        <strong>⚠️ Firebase Required</strong><br>
-        <strong>You must configure Firebase to use this app.</strong> All scans are saved to Firestore and require an account.
-        <div style="margin-top:0.75rem;">
-          <small>Paste your Firebase web app config (JSON) below and click Configure to get started.</small>
-          <textarea id="firebaseConfigInput" style="width:100%;height:6rem;margin-top:0.5rem;font-family:monospace;padding:0.5rem;" placeholder='{"apiKey":"...","authDomain":"...","projectId":"...","storageBucket":"...","messagingSenderId":"...","appId":"..."}'></textarea>
-          <div style="display:flex;gap:0.5rem;margin-top:0.5rem;"><button type="button" class="btn" id="firebaseConfigureBtn">Configure Firebase</button><button type="button" class="btn btn-secondary" id="firebaseClearBtn">Clear</button></div>
-        </div>
-      </div>
-
       <div class="auth-tabs">
         <button class="auth-tab active" data-tab="signup">Sign Up</button>
         <button class="auth-tab" data-tab="signin">Sign In</button>
@@ -370,22 +326,8 @@ class BSAuth extends HTMLElement {
     this.#authStatusEl = this.shadowRoot.getElementById('authStatus');
     this.#authFormsEl = this.shadowRoot.getElementById('authForms');
 
-    // Update Firebase status display
-    this.#updateFirebaseStatus();
-
-    // Show Firebase not configured message if needed
-    if (!isFirebaseConfigured()) {
-      this.shadowRoot.getElementById('firebaseNotConfigured')?.removeAttribute('hidden');
-    }
-
     // Set up event listeners
     this.#setupEventListeners();
-
-    // Configure Firebase button
-    const configureBtn = this.shadowRoot.getElementById('firebaseConfigureBtn');
-    const clearBtn = this.shadowRoot.getElementById('firebaseClearBtn');
-    if (configureBtn) configureBtn.addEventListener('click', () => this.#handleConfigureFirebase());
-    if (clearBtn) clearBtn.addEventListener('click', () => this.#handleClearFirebaseInput());
 
     // Subscribe to auth state changes
     this.#unsubscribeAuth = onAuthStateChange(user => {
@@ -531,82 +473,6 @@ class BSAuth extends HTMLElement {
     }
   }
 
-  async #handleConfigureFirebase() {
-    const inputEl = this.shadowRoot.getElementById('firebaseConfigInput');
-    if (!inputEl) return;
-
-    const raw = inputEl.value.trim();
-    if (!raw) {
-      toastify('Please paste your Firebase config JSON first', { variant: 'warning' });
-      return;
-    }
-
-    let parsed = null;
-    try {
-      parsed = JSON.parse(raw);
-    } catch (err) {
-      toastify('Invalid JSON. Please check and try again.', { variant: 'danger' });
-      return;
-    }
-
-    const { error } = initFirebaseRuntime(parsed);
-    if (error) {
-      log.error('Error initializing Firebase with provided config:', error);
-      
-      // Show specific error message for invalid API key
-      let errorMessage = 'Failed to initialize Firebase. ';
-      if (error.message?.includes('API key') || error.message?.includes('api-key-not-valid')) {
-        errorMessage = 'Invalid Firebase API key. Please check your configuration and make sure all values are correct.';
-      } else {
-        errorMessage += error.message || 'Check console for details.';
-      }
-      
-      toastify(errorMessage, { variant: 'danger', duration: 6000 });
-      return;
-    }
-
-    // Try to initialize Firestore persistence and auth
-    try {
-      await initFirestore();
-    } catch (e) {
-      // non-fatal
-    }
-
-    try {
-      const user = await initAuth();
-      if (!user) {
-        // attempt anonymous sign-in if allowed
-        await signInAnonymous();
-      }
-    } catch (e) {
-      // ignore
-    }
-
-    // Re-subscribe to auth state changes now that Firebase is initialized
-    try {
-      if (this.#unsubscribeAuth) {
-        this.#unsubscribeAuth();
-      }
-      this.#unsubscribeAuth = onAuthStateChange(user => this.#handleAuthStateChange(user));
-    } catch (e) {
-      // ignore
-    }
-
-    // Hide the not-configured message and refresh UI
-    this.shadowRoot.getElementById('firebaseNotConfigured')?.setAttribute('hidden', '');
-    toastify('Firebase configured successfully', { variant: 'success' });
-
-    // Enable sign-in/sign-up buttons now that Firebase is configured
-    const signinBtn = this.shadowRoot.getElementById('signinBtn');
-    const signupBtn = this.shadowRoot.getElementById('signupBtn');
-    if (signinBtn) signinBtn.disabled = false;
-    if (signupBtn) signupBtn.disabled = false;
-  }
-
-  #handleClearFirebaseInput() {
-    const inputEl = this.shadowRoot.getElementById('firebaseConfigInput');
-    if (inputEl) inputEl.value = '';
-  }
 
   #handleAuthStateChange(user) {
     if (user) {
@@ -647,32 +513,6 @@ class BSAuth extends HTMLElement {
         composed: true,
         detail: { user: null }
       }));
-    }
-    
-    // Update Firebase status
-    this.#updateFirebaseStatus();
-  }
-
-  #updateFirebaseStatus() {
-    try {
-      const status = getFirebaseStatus();
-      const statusEl = this.shadowRoot.getElementById('firebaseStatus');
-      const configIcon = this.shadowRoot.getElementById('configIcon');
-      const configStatus = this.shadowRoot.getElementById('configStatus');
-
-      if (!statusEl) return;
-
-      if (status.configured) {
-        statusEl.classList.add('configured');
-        if (configIcon) configIcon.textContent = '✅';
-        if (configStatus) configStatus.textContent = 'Firebase configured and ready';
-      } else {
-        statusEl.classList.remove('configured');
-        if (configIcon) configIcon.textContent = '⚠️';
-        if (configStatus) configStatus.textContent = 'Firebase not configured - configure to save scans';
-      }
-    } catch (error) {
-      log.error('Error updating Firebase status:', error);
     }
   }
 

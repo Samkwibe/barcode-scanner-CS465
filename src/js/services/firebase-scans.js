@@ -109,7 +109,7 @@ export async function saveScan(scanData) {
     // Also save to local storage as a backup
     try {
       const [, history = []] = await getHistory();
-      const expiresAtMs = scanData.expiresAt || (Date.now() + 30 * 24 * 60 * 60 * 1000);
+      const expiresAtMs = scanData.expiresAt || Date.now() + 30 * 24 * 60 * 60 * 1000;
       const localScan = {
         value: scanData.value,
         addedAt: Date.now(),
