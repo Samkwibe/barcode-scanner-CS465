@@ -362,6 +362,37 @@ class BSScanConfirm extends HTMLElement {
   async #handleSave() {
     if (!this.#scanData) return;
 
+    // Check authentication before allowing save
+    try {
+      const { isAuthenticated } = await import('../services/firebase-auth.js');
+      const { isFirebaseConfigured } = await import('../services/firebase-config.js');
+      
+      if (!isFirebaseConfigured()) {
+        const { toastify } = await import('../helpers/toastify.js');
+        toastify('Firebase is not configured. Please configure Firebase in Account settings.', { 
+          variant: 'warning',
+          duration: 5000
+        });
+        return;
+      }
+      
+      if (!isAuthenticated()) {
+        const { toastify } = await import('../helpers/toastify.js');
+        toastify('You must be signed in to save scans. Please create an account or sign in.', { 
+          variant: 'warning',
+          duration: 5000
+        });
+        // Emit event to open auth dialog
+        this.dispatchEvent(new CustomEvent('scan-confirm-requires-auth', {
+          bubbles: true,
+          composed: true
+        }));
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking authentication:', error);
+    }
+
     const expirationDate = this.#expirationDateEl?.value;
     const notes = this.#customNotesEl?.value;
 

@@ -295,10 +295,46 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
 
   async function saveScanData(scanData) {
     try {
-      await saveScan(scanData);
-      log.info('Scan saved:', scanData.value);
+      const result = await saveScan(scanData);
+      
+      if (result.error) {
+        // Check if user needs to authenticate
+        if (result.requiresAuth) {
+          toastify('You must be signed in to save scans. Please create an account or sign in.', { 
+            variant: 'warning',
+            duration: 5000
+          });
+          // Open auth dialog
+          if (authDialog) {
+            authDialog.open = true;
+          }
+          return;
+        }
+        
+        // Check if Firebase needs to be configured
+        if (result.requiresFirebase) {
+          toastify('Firebase is not configured. Please configure Firebase to save scans.', { 
+            variant: 'warning',
+            duration: 5000
+          });
+          // Open auth dialog to configure Firebase
+          if (authDialog) {
+            authDialog.open = true;
+          }
+          return;
+        }
+        
+        // Other errors
+        toastify('Failed to save scan. Please try again.', { variant: 'danger' });
+        log.error('Error saving scan:', result.error);
+        return;
+      }
+      
+      log.info('Scan saved to Firestore:', result.scanId);
+      toastify('Scan saved successfully!', { variant: 'success' });
     } catch (saveError) {
-      log.warn('Error saving scan to Firestore:', saveError);
+      log.error('Error saving scan:', saveError);
+      toastify('Failed to save scan. Please try again.', { variant: 'danger' });
     }
   }
 

@@ -60,32 +60,17 @@ export async function initFirestore() {
 export async function saveScan(scanData) {
   const userId = getUserId();
 
-  // If Firebase is not configured or user is not authenticated, save to local storage only
-  if (!isFirebaseConfigured() || !db || !userId) {
-    log.info('Saving scan locally (Firebase not available or user not authenticated)');
-    
-    try {
-      // Save to local storage using existing storage service
-      const [, history = []] = await getHistory();
-      const newScan = {
-        value: scanData.value,
-        addedAt: Date.now(),
-        expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000), // 7 days
-        notified: false,
-        preNotified: false,
-        title: scanData.title || '',
-        brand: scanData.brand || '',
-        description: scanData.description || '',
-        format: scanData.format || '',
-        metadata: scanData.metadata || {}
-      };
-      
-      await setHistory([...history, newScan]);
-      return { error: null, scanId: null };
-    } catch (error) {
-      log.error('Error saving scan locally:', error);
-      return { error, scanId: null };
-    }
+  // REQUIRE authentication and Firebase - no saving without account
+  if (!isFirebaseConfigured() || !db) {
+    const error = new Error('Firebase is not configured. Please configure Firebase to save scans.');
+    log.error('Cannot save scan:', error);
+    return { error, scanId: null, requiresAuth: false, requiresFirebase: true };
+  }
+
+  if (!userId) {
+    const error = new Error('You must be signed in to save scans. Please create an account or sign in.');
+    log.error('Cannot save scan: User not authenticated');
+    return { error, scanId: null, requiresAuth: true, requiresFirebase: false };
   }
 
   try {
@@ -129,29 +114,8 @@ export async function saveScan(scanData) {
     return { error: null, scanId: docRef.id };
   } catch (error) {
     log.error('Error saving scan to Firestore:', error);
-
-    // Fallback: save to local storage
-    try {
-      const [, history = []] = await getHistory();
-      const localScan = {
-        value: scanData.value,
-        addedAt: Date.now(),
-        expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000), // 7 days
-        notified: false,
-        preNotified: false,
-        title: scanData.title || '',
-        brand: scanData.brand || '',
-        description: scanData.description || '',
-        format: scanData.format || '',
-        pendingSync: true // Mark for sync when online
-      };
-      await setHistory([...history, localScan]);
-      log.info('Scan saved locally, will sync when online');
-    } catch (localError) {
-      log.error('Error saving to local storage:', localError);
-    }
-
-    return { error, scanId: null };
+    // No fallback to local storage - must save to Firestore
+    return { error, scanId: null, requiresAuth: false, requiresFirebase: false };
   }
 }
 
