@@ -24,6 +24,9 @@ import './components/bs-history.js';
 import './components/bs-auth.js';
 import './components/bs-scan-confirm.js';
 import './components/bs-product-details.js';
+import './components/bs-recipes.js';
+import './components/bs-recipe-details.js';
+import './components/bs-items.js';
 import { initAuth, signInAnonymous } from './services/firebase-auth.js';
 import { initFirestore, saveScan, syncPendingScans } from './services/firebase-scans.js';
 import { isFirebaseConfigured } from './services/firebase-config.js';
@@ -96,10 +99,20 @@ import { isFirebaseConfigured } from './services/firebase-config.js';
   const scanConfirmEl = document.querySelector('bs-scan-confirm');
   const productDetailsDialog = document.getElementById('productDetailsDialog');
   const productDetailsEl = document.querySelector('bs-product-details');
+  const recipeDetailsDialog = document.getElementById('recipeDetailsDialog');
+  const recipeDetailsEl = document.querySelector('bs-recipe-details');
+  const homePage = document.getElementById('homePage');
+  const itemsPage = document.getElementById('itemsPage');
+  const recipesPage = document.getElementById('recipesPage');
+  const navLinks = document.querySelectorAll('[data-page]');
+  const homeLink = document.getElementById('homeLink');
+  const navSearchForm = document.getElementById('navSearchForm');
+  const navSearchInput = document.getElementById('navSearchInput');
   const SCAN_RATE_LIMIT = 1000;
   let scanTimeoutId = null;
   let shouldScan = true;
   let pendingScanData = null;
+  let currentPage = 'home';
 
   // By default the dialog elements are hidden for browsers that don't support the dialog element.
   // If the dialog element is supported, we remove the hidden attribute and the dialogs' visibility
@@ -165,21 +178,33 @@ import { isFirebaseConfigured } from './services/firebase-config.js';
     // Clear existing content
     itemInfoEl.textContent = '';
 
+    // Add product image if available
+    if (info.image || info.images?.[0]) {
+      const img = document.createElement('img');
+      img.className = 'item-info__image';
+      img.src = info.image || info.images[0];
+      img.alt = info.title || info.name || 'Product image';
+      img.onerror = function() {
+        this.style.display = 'none';
+      };
+      itemInfoEl.appendChild(img);
+    }
+
     const title = document.createElement('h3');
     title.className = 'item-info__title';
     title.textContent = info.title || info.name || info.alias || '';
+
+    const brand = document.createElement('p');
+    brand.className = 'item-info__brand';
+    brand.textContent = info.brand ? `🏷️ ${info.brand}` : '';
 
     const desc = document.createElement('p');
     desc.className = 'item-info__description';
     desc.textContent = info.description || '';
 
-    const brand = document.createElement('p');
-    brand.className = 'item-info__brand';
-    brand.textContent = info.brand ? `Brand: ${info.brand}` : '';
-
     itemInfoEl.appendChild(title);
-    if (desc.textContent) itemInfoEl.appendChild(desc);
     if (brand.textContent) itemInfoEl.appendChild(brand);
+    if (desc.textContent) itemInfoEl.appendChild(desc);
   }
 
   async function handleFetchedItemInfo(barcodeValue, panelEl, barcodeFormat = '', shouldShowConfirm = true) {
@@ -860,4 +885,91 @@ import { isFirebaseConfigured } from './services/firebase-config.js';
       productDetailsDialog.open = true;
     }
   });
+
+  // Navigation handlers
+  function showPage(pageName) {
+    // Hide all pages
+    homePage?.setAttribute('hidden', '');
+    itemsPage?.setAttribute('hidden', '');
+    recipesPage?.setAttribute('hidden', '');
+
+    // Show selected page
+    switch(pageName) {
+      case 'home':
+        homePage?.removeAttribute('hidden');
+        break;
+      case 'items':
+        itemsPage?.removeAttribute('hidden');
+        // Reload items when page is shown
+        const itemsEl = document.querySelector('bs-items');
+        if (itemsEl && typeof itemsEl.loadItems === 'function') {
+          itemsEl.loadItems();
+        }
+        break;
+      case 'recipes':
+        recipesPage?.removeAttribute('hidden');
+        // Reload recipes when page is shown
+        const recipesEl = document.querySelector('bs-recipes');
+        if (recipesEl && typeof recipesEl.loadRecipes === 'function') {
+          recipesEl.loadRecipes();
+        }
+        break;
+    }
+
+    currentPage = pageName;
+
+    // Update active nav link
+    navLinks.forEach(link => {
+      if (link.dataset.page === pageName) {
+        link.style.color = 'var(--accent)';
+        link.style.fontWeight = '600';
+      } else {
+        link.style.color = '';
+        link.style.fontWeight = '';
+      }
+    });
+  }
+
+  // Navigation link handlers
+  navLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const page = link.dataset.page;
+      showPage(page);
+    });
+  });
+
+  // Home link handler
+  homeLink?.addEventListener('click', (e) => {
+    e.preventDefault();
+    showPage('home');
+  });
+
+  // Navigation search handler
+  navSearchForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const query = navSearchInput?.value.trim();
+    if (query) {
+      // Switch to items page and filter
+      showPage('items');
+      // Could add search filtering here
+      toastify(`Searching for: ${query}`, { variant: 'info' });
+    }
+  });
+
+  // Recipe details handler
+  document.addEventListener('show-recipe-details', (evt) => {
+    const recipeData = evt.detail.recipe;
+    if (recipeDetailsEl && recipeDetailsDialog) {
+      recipeDetailsEl.show(recipeData);
+      recipeDetailsDialog.open = true;
+    }
+  });
+
+  document.addEventListener('recipe-details-close', () => {
+    recipeDetailsDialog.open = false;
+  });
+
+  // Initialize: show home page
+  showPage('home');
 })();

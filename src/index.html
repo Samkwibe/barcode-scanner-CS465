@@ -49,15 +49,15 @@
 
   <!--added by Ellie -->
   <header class="navigation">
-    <a href= "#"><h1 class="header-title">Barcode Scanner App</h1></a>   
-    <ul id = "Header List" class = "navigationList"> 
-      <li class="navigationListItem" id="1"><a href="#">Home </a></li>
-      <li class="navigationListItem" id="2"><a href="#">Items </a></li>
-      <li class="navigationListItem" id="3"><a href="#">Recipes </a></li>
+    <a href="#" id="homeLink"><h1 class="header-title">Barcode Scanner App</h1></a>   
+    <ul id="Header List" class="navigationList"> 
+      <li class="navigationListItem" id="navHome"><a href="#" data-page="home">Home</a></li>
+      <li class="navigationListItem" id="navItems"><a href="#" data-page="items">Items</a></li>
+      <li class="navigationListItem" id="navRecipes"><a href="#" data-page="recipes">Recipes</a></li>
       <li class="navigationListItem">
-        <form onSubmit={submitAnswer}>
-        <input type="text" value=""></input>
-        <input type="submit" value="Search"></input>
+        <form id="navSearchForm">
+        <input type="text" id="navSearchInput" placeholder="Search..." />
+        <input type="submit" value="Search" />
         </form>
       </li>
     </ul>
@@ -103,6 +103,8 @@
 
 
 
+  <!-- Page Views -->
+  <div id="homePage" class="page-view">
   <div class="container">
     <alert-element variant="danger" id="barcodeReaderError">
       <span slot="icon">
@@ -229,6 +231,15 @@
       </a-tab-panel>
     </a-tab-group>
   </div>
+  </div>
+
+  <div id="itemsPage" class="page-view" hidden>
+    <bs-items></bs-items>
+  </div>
+
+  <div id="recipesPage" class="page-view" hidden>
+    <bs-recipes></bs-recipes>
+  </div>
 
   <footer>
     <div class="source-code">
@@ -300,6 +311,11 @@
   <modal-element id="productDetailsDialog" class="popover-dialog product-details-dialog" placement="center" hidden>
     <span slot="header">Product Details</span>
     <bs-product-details></bs-product-details>
+  </modal-element>
+
+  <modal-element id="recipeDetailsDialog" class="popover-dialog recipe-details-dialog" placement="center" hidden>
+    <span slot="header">Recipe Details</span>
+    <bs-recipe-details></bs-recipe-details>
   </modal-element>
 
   <script src="./js/register-service-worker.js" type="module"></script>

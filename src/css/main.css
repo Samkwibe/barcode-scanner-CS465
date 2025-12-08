@@ -400,12 +400,14 @@ video-capture {
   border: var(--capture-border-width) solid var(--border);
   border-radius: var(--border-radius);
   background-color: #000000;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-  transition: box-shadow 0.3s ease;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
 }
 
 video-capture:hover {
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
 }
 
 video-capture::part(video) {
@@ -678,14 +680,15 @@ alert-element {
 /* Results */
 .results {
   margin-block-start: 1.5rem;
-  background-color: var(--background-alt);
+  background: linear-gradient(135deg, var(--background-alt) 0%, var(--background-body) 100%);
   border-radius: var(--border-radius);
   border: 1px solid var(--border);
   overflow-x: hidden;
   max-height: 20.125rem;
   overscroll-behavior: contain;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   animation: fadeIn 0.4s ease-out;
+  backdrop-filter: blur(10px);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -704,26 +707,41 @@ alert-element {
 
 /* Item info card shown below camera or file panel */
 .item-info {
-  padding: 0.75rem;
+  padding: 1.25rem;
   border-top: 1px solid var(--border);
-  background: var(--background-body);
+  background: linear-gradient(135deg, var(--background-body) 0%, var(--background-alt) 100%);
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.item-info__image {
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  border-radius: 8px;
+  margin: 0 auto 1rem;
+  display: block;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .item-info__title {
-  margin: 0 0 0.25rem 0;
-  font-size: 1rem;
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
   font-weight: 600;
+  color: var(--text-main);
 }
 
 .item-info__description {
-  margin: 0 0 0.25rem 0;
+  margin: 0 0 0.5rem 0;
   color: var(--text-muted);
+  line-height: 1.6;
 }
 
 .item-info__brand {
   margin: 0;
-  font-size: 0.9rem;
-  color: var(--text-main);
+  font-size: 1rem;
+  color: var(--accent);
+  font-weight: 500;
 }
 
 /* Utils */
@@ -765,6 +783,53 @@ alert-element {
   position: sticky;
   top: 0;
   z-index: 100;
+}
+
+.page-view {
+  min-height: calc(100vh - 200px);
+  animation: fadeIn 0.4s ease-out;
+}
+
+.navigationList form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.navigationList form input[type="text"] {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 0.9rem;
+  min-width: 150px;
+}
+
+.navigationList form input[type="text"]::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.navigationList form input[type="text"]:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.navigationList form input[type="submit"] {
+  padding: 0.5rem 1rem;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: opacity 0.2s ease;
+}
+
+.navigationList form input[type="submit"]:hover {
+  opacity: 0.9;
 }
 
 .navigation a {
