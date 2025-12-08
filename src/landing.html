@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Barcode Scanner - Smart Product Tracking</title>
+  <meta name="description" content="A modern Progressive Web App for scanning barcodes, tracking products, managing inventory, and discovering recipes.">
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    .landing-hero {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--primary-color, #0066cc) 100%);
+      color: white;
+      padding: 4rem 2rem;
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .landing-hero h1 {
+      font-size: 3rem;
+      margin: 0 0 1rem 0;
+      font-weight: 700;
+    }
+
+    .landing-hero p {
+      font-size: 1.25rem;
+      margin: 0 0 2rem 0;
+      opacity: 0.95;
+    }
+
+    .landing-cta {
+      display: inline-block;
+      padding: 1rem 2rem;
+      background: white;
+      color: var(--accent);
+      text-decoration: none;
+      border-radius: var(--border-radius);
+      font-weight: 600;
+      font-size: 1.1rem;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .landing-cta:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    }
+
+    .landing-features {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem 4rem;
+    }
+
+    .landing-features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+
+    .landing-feature {
+      padding: 2rem;
+      background: var(--background-alt);
+      border-radius: var(--border-radius);
+      border: 1px solid var(--border);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .landing-feature:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    }
+
+    .landing-feature-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .landing-feature h3 {
+      font-size: 1.5rem;
+      margin: 0 0 0.5rem 0;
+      color: var(--text-main);
+    }
+
+    .landing-feature p {
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    .landing-section {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 4rem 2rem;
+    }
+
+    .landing-section h2 {
+      font-size: 2.5rem;
+      text-align: center;
+      margin-bottom: 2rem;
+      color: var(--text-main);
+    }
+
+    .landing-tech {
+      background: var(--background-alt);
+      border-radius: var(--border-radius);
+      padding: 2rem;
+      margin-top: 2rem;
+    }
+
+    .landing-tech-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+      margin-top: 1rem;
+    }
+
+    .landing-tech-item {
+      padding: 0.5rem 1rem;
+      background: white;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      color: var(--text-main);
+      border: 1px solid var(--border);
+    }
+
+    @media (max-width: 768px) {
+      .landing-hero h1 {
+        font-size: 2rem;
+      }
+
+      .landing-hero p {
+        font-size: 1rem;
+      }
+
+      .landing-features-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="landing-hero">
+    <h1>📱 Barcode Scanner</h1>
+    <p>Smart product tracking, inventory management, and recipe discovery all in one app</p>
+    <a href="index.html" class="landing-cta">Start Scanning →</a>
+  </div>
+
+  <div class="landing-features">
+    <h2>Features</h2>
+    <div class="landing-features-grid">
+      <div class="landing-feature">
+        <div class="landing-feature-icon">📷</div>
+        <h3>Camera Scanning</h3>
+        <p>Scan barcodes and QR codes directly from your device's camera. Fast, accurate, and works offline.</p>
+      </div>
+
+      <div class="landing-feature">
+        <div class="landing-feature-icon">📦</div>
+        <h3>Product Information</h3>
+        <p>Instantly get detailed product information including name, brand, description, and images from UPC codes.</p>
+      </div>
+
+      <div class="landing-feature">
+        <div class="landing-feature-icon">⏰</div>
+        <h3>Expiration Tracking</h3>
+        <p>Track expiration dates with visual countdown timers. Get notified when items are about to expire.</p>
+      </div>
+
+      <div class="landing-feature">
+        <div class="landing-feature-icon">☁️</div>
+        <h3>Cloud Sync</h3>
+        <p>All your scans are securely saved to Firebase and synced across all your devices automatically.</p>
+      </div>
+
+      <div class="landing-feature">
+        <div class="landing-feature-icon">📚</div>
+        <h3>Scan History</h3>
+        <p>View your complete scan history with search and filters. Never lose track of what you've scanned.</p>
+      </div>
+
+      <div class="landing-feature">
+        <div class="landing-feature-icon">🍳</div>
+        <h3>Recipe Discovery</h3>
+        <p>Get recipe suggestions based on your scanned ingredients. Make the most of what you have!</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="landing-section">
+    <h2>About This Project</h2>
+    <p style="text-align: center; max-width: 800px; margin: 0 auto; line-height: 1.8; color: var(--text-muted);">
+      This is a full-featured Progressive Web Application (PWA) built for CS465. It demonstrates modern web technologies 
+      including Firebase Authentication, Firestore database, barcode detection API, and responsive design. 
+      The app works seamlessly on both mobile and desktop devices, with offline support and cloud synchronization.
+    </p>
+
+    <div class="landing-tech">
+      <h3 style="text-align: center; margin-bottom: 1rem;">Built With</h3>
+      <div class="landing-tech-list">
+        <span class="landing-tech-item">Firebase Authentication</span>
+        <span class="landing-tech-item">Firestore Database</span>
+        <span class="landing-tech-item">Barcode Detection API</span>
+        <span class="landing-tech-item">Progressive Web App</span>
+        <span class="landing-tech-item">Web Components</span>
+        <span class="landing-tech-item">Netlify Functions</span>
+        <span class="landing-tech-item">Responsive Design</span>
+        <span class="landing-tech-item">Offline Support</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align: center; padding: 2rem; background: var(--background-alt); margin-top: 4rem;">
+    <a href="index.html" class="landing-cta" style="display: inline-block;">Get Started Now →</a>
+  </div>
+
+  <footer style="text-align: center; padding: 2rem; color: var(--text-muted);">
+    <p>Barcode Scanner App - CS465 Project</p>
+    <p style="font-size: 0.9rem; margin-top: 0.5rem;">Built with ❤️ by the CS465 Team</p>
+  </footer>
+</body>
+</html>
+

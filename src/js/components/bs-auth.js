@@ -679,7 +679,7 @@ class BSAuth extends HTMLElement {
       } else {
         statusEl.classList.remove('configured');
         if (configIcon) configIcon.textContent = '⚠️';
-        if (configStatus) configStatus.textContent = 'Firebase not configured - using local storage only';
+        if (configStatus) configStatus.textContent = 'Firebase not configured - configure to save scans';
         if (authStatusItem) authStatusItem.setAttribute('hidden', '');
       }
     } catch (error) {
