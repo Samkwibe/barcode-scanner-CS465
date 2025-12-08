@@ -127,33 +127,17 @@ export async function saveScan(scanData) {
 export async function getUserScans(maxResults = 100) {
   const userId = getUserId();
 
-  // If Firebase is not configured or user is not authenticated, return local storage
-  if (!isFirebaseConfigured() || !db || !userId) {
-    log.info('Getting scans from local storage (Firebase not available or user not authenticated)');
-    
-    try {
-      const [error, history = []] = await getHistory();
-      if (error) {
-        return { error, scans: [] };
-      }
+  // REQUIRE authentication and Firebase - no data without account
+  if (!isFirebaseConfigured() || !db) {
+    const error = new Error('Firebase is not configured. Please configure Firebase to view scans.');
+    log.error('Cannot get scans:', error);
+    return { error, scans: [], requiresAuth: false, requiresFirebase: true };
+  }
 
-      // Transform local storage format to match Firestore format
-      const scans = history.map(item => ({
-        id: item.firestoreId || null,
-        value: typeof item === 'string' ? item : item.value,
-        title: item.title || '',
-        brand: item.brand || '',
-        description: item.description || '',
-        format: item.format || '',
-        scannedAt: item.addedAt ? new Date(item.addedAt) : new Date(),
-        metadata: item.metadata || {}
-      }));
-
-      return { error: null, scans };
-    } catch (error) {
-      log.error('Error getting scans from local storage:', error);
-      return { error, scans: [] };
-    }
+  if (!userId) {
+    const error = new Error('You must be signed in to view your scans. Please create an account or sign in.');
+    log.error('Cannot get scans: User not authenticated');
+    return { error, scans: [], requiresAuth: true, requiresFirebase: false };
   }
 
   try {
