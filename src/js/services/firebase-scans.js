@@ -68,7 +68,9 @@ export async function saveScan(scanData) {
   }
 
   if (!userId) {
-    const error = new Error('You must be signed in to save scans. Please create an account or sign in.');
+    const error = new Error(
+      'You must be signed in to save scans. Please create an account or sign in.'
+    );
     log.error('Cannot save scan: User not authenticated');
     return { error, scanId: null, requiresAuth: true, requiresFirebase: false };
   }
@@ -93,18 +95,18 @@ export async function saveScan(scanData) {
     // Also save to local storage as a backup
     try {
       const [, history = []] = await getHistory();
-        const localScan = {
-          value: scanData.value,
-          addedAt: Date.now(),
-          expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000), // 7 days
-          notified: false,
-          preNotified: false,
-          title: scanData.title || '',
-          brand: scanData.brand || '',
-          description: scanData.description || '',
-          format: scanData.format || '',
-          firestoreId: docRef.id
-        };
+      const localScan = {
+        value: scanData.value,
+        addedAt: Date.now(),
+        expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+        notified: false,
+        preNotified: false,
+        title: scanData.title || '',
+        brand: scanData.brand || '',
+        description: scanData.description || '',
+        format: scanData.format || '',
+        firestoreId: docRef.id
+      };
       await setHistory([...history, localScan]);
     } catch (localError) {
       log.warn('Error saving to local storage:', localError);
@@ -135,7 +137,9 @@ export async function getUserScans(maxResults = 100) {
   }
 
   if (!userId) {
-    const error = new Error('You must be signed in to view your scans. Please create an account or sign in.');
+    const error = new Error(
+      'You must be signed in to view your scans. Please create an account or sign in.'
+    );
     log.error('Cannot get scans: User not authenticated');
     return { error, scans: [], requiresAuth: true, requiresFirebase: false };
   }
@@ -222,7 +226,7 @@ export async function deleteAllUserScans() {
 
   if (!isFirebaseConfigured() || !db || !userId) {
     log.info('Deleting all scans from local storage only');
-    
+
     try {
       await setHistory([]);
       return { error: null, deletedCount: 0 };
@@ -232,10 +236,7 @@ export async function deleteAllUserScans() {
   }
 
   try {
-    const scansQuery = query(
-      collection(db, SCANS_COLLECTION),
-      where('userId', '==', userId)
-    );
+    const scansQuery = query(collection(db, SCANS_COLLECTION), where('userId', '==', userId));
 
     const querySnapshot = await getDocs(scansQuery);
     const batch = writeBatch(db);
@@ -272,7 +273,10 @@ export async function syncPendingScans() {
   const userId = getUserId();
 
   if (!isFirebaseConfigured() || !db || !userId) {
-    return { error: new Error('Firebase not configured or user not authenticated'), syncedCount: 0 };
+    return {
+      error: new Error('Firebase not configured or user not authenticated'),
+      syncedCount: 0
+    };
   }
 
   try {
@@ -282,7 +286,7 @@ export async function syncPendingScans() {
     }
 
     const pendingScans = history.filter(item => item.pendingSync === true);
-    
+
     if (pendingScans.length === 0) {
       return { error: null, syncedCount: 0 };
     }
@@ -337,14 +341,14 @@ export async function syncPendingScans() {
  */
 export async function getUserIngredients(maxResults = 1000) {
   const { error, scans } = await getUserScans(maxResults);
-  
+
   if (error) {
     return { error, ingredients: [] };
   }
-  
+
   const ingredients = [];
   const seen = new Set(); // For deduplication
-  
+
   scans.forEach(scan => {
     // Use title if available, otherwise fallback to barcode value
     const title = scan.title || scan.value;
@@ -353,8 +357,7 @@ export async function getUserIngredients(maxResults = 1000) {
       seen.add(title.toLowerCase());
     }
   });
-  
+
   log.info(`Retrieved ${ingredients.length} unique ingredients from ${scans.length} scans`);
   return { error: null, ingredients };
 }
-
