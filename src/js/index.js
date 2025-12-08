@@ -144,6 +144,9 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
     authDialog?.removeAttribute('hidden');
     historyDialog?.removeAttribute('hidden');
     settingsDialog?.removeAttribute('hidden');
+    scanConfirmDialog?.removeAttribute('hidden');
+    productDetailsDialog?.removeAttribute('hidden');
+    recipeDetailsDialog?.removeAttribute('hidden');
   }
 
   const { barcodeReaderError } = await BarcodeReader.setup();
@@ -181,7 +184,16 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
    * @param {Object} info
    */
   function renderItemDetails(panelEl, info) {
-    if (!panelEl || !info) return;
+    if (!panelEl) {
+      log.error('Cannot render item details: panelEl is null');
+      return;
+    }
+    if (!info) {
+      log.warn('Cannot render item details: info is null');
+      return;
+    }
+
+    log.info('Rendering item details:', info);
 
     let itemInfoEl = panelEl.querySelector('#itemInfo');
     if (!itemInfoEl) {
@@ -195,10 +207,16 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
       } else {
         panelEl.appendChild(itemInfoEl);
       }
+      log.info('Created new itemInfo element');
+    } else {
+      log.info('Using existing itemInfo element');
     }
 
     // Clear existing content
     itemInfoEl.textContent = '';
+    itemInfoEl.style.display = 'block';
+    itemInfoEl.style.visibility = 'visible';
+    itemInfoEl.style.opacity = '1';
 
     // Add product image if available
     if (info.image || info.images?.[0]) {
@@ -207,14 +225,18 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
       img.src = info.image || info.images[0];
       img.alt = info.title || info.name || 'Product image';
       img.onerror = function() {
+        log.warn('Product image failed to load:', this.src);
         this.style.display = 'none';
+      };
+      img.onload = function() {
+        log.info('Product image loaded successfully:', this.src);
       };
       itemInfoEl.appendChild(img);
     }
 
     const title = document.createElement('h3');
     title.className = 'item-info__title';
-    title.textContent = info.title || info.name || info.alias || '';
+    title.textContent = info.title || info.name || info.alias || 'Unknown Product';
 
     const brand = document.createElement('p');
     brand.className = 'item-info__brand';
@@ -227,6 +249,8 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
     itemInfoEl.appendChild(title);
     if (brand.textContent) itemInfoEl.appendChild(brand);
     if (desc.textContent) itemInfoEl.appendChild(desc);
+    
+    log.info('Item details rendered successfully');
   }
 
   async function handleFetchedItemInfo(barcodeValue, panelEl, barcodeFormat = '', shouldShowConfirm = false) {
@@ -248,13 +272,42 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
       // Auto-save immediately
       await saveScanData(scanData);
       
-      // Show beautiful product display immediately
-      if (info && productDetailsEl && productDetailsDialog) {
-        await productDetailsEl.show(scanData);
-        productDetailsDialog.open = true;
-      } else if (info) {
-        // Fallback: render inline if modal not available
+      // ALWAYS render inline first (guaranteed to work and visible)
+      if (info) {
+        log.info('Rendering product details inline for:', info.title || info.name || barcodeValue);
         renderItemDetails(panelEl, info);
+        // Scroll to show the product info
+        setTimeout(() => {
+          const itemInfoEl = panelEl.querySelector('#itemInfo');
+          if (itemInfoEl) {
+            itemInfoEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }, 100);
+      } else {
+        log.warn('No product info found for barcode:', barcodeValue);
+        // Show basic barcode info even if no product found
+        const basicInfo = {
+          title: `Barcode: ${barcodeValue}`,
+          description: 'Product information not available in database. The barcode was scanned and saved.'
+        };
+        renderItemDetails(panelEl, basicInfo);
+      }
+      
+      // Also try to show modal if available (nice bonus feature)
+      if (info && productDetailsEl && productDetailsDialog) {
+        try {
+          log.info('Attempting to show product details modal');
+          if (typeof productDetailsEl.show === 'function') {
+            await productDetailsEl.show(scanData);
+            productDetailsDialog.open = true;
+            log.info('Product details modal opened successfully');
+          } else {
+            log.warn('productDetailsEl.show is not a function');
+          }
+        } catch (modalError) {
+          log.warn('Could not show product details modal:', modalError);
+          // Inline display already shown above, so user still sees the info
+        }
       }
 
       // Show success toast
