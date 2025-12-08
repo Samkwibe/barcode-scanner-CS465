@@ -5,12 +5,16 @@ import {
   signInWithEmail,
   createAccount,
   signOut,
-  getCurrentUser
+  getCurrentUser,
+  isAuthenticated,
+  getUserId
 } from '../services/firebase-auth.js';
 import { initFirestore } from '../services/firebase-scans.js';
 import { initAuth } from '../services/firebase-auth.js';
+import { isFirebaseConfigured } from '../services/firebase-config.js';
 import { log } from '../utils/log.js';
 import { toastify } from '../helpers/toastify.js';
+import { getFirebaseStatus } from '../utils/firebase-test.js';
 
 const styles = /* css */ `
   :host {
@@ -175,6 +179,42 @@ const styles = /* css */ `
     font-size: 0.875rem;
   }
 
+  .firebase-status {
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    background-color: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: var(--border-radius);
+    font-size: 0.875rem;
+  }
+
+  .firebase-status.configured {
+    background-color: #f0fdf4;
+    border-color: #86efac;
+    color: #166534;
+  }
+
+  .firebase-status.error {
+    background-color: #fef2f2;
+    border-color: #fecaca;
+    color: #991b1b;
+  }
+
+  .status-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .status-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .status-icon {
+    font-size: 1rem;
+  }
+
   .divider {
     display: flex;
     align-items: center;
@@ -234,6 +274,17 @@ template.innerHTML = /* html */ `
     </div>
 
     <div id="authForms" hidden>
+      <div class="firebase-status" id="firebaseStatus">
+        <div class="status-item">
+          <span class="status-icon" id="configIcon">⚙️</span>
+          <span id="configStatus">Checking Firebase configuration...</span>
+        </div>
+        <div class="status-item" id="authStatusItem" hidden>
+          <span class="status-icon" id="authIcon">👤</span>
+          <span id="authStatus">Not authenticated</span>
+        </div>
+      </div>
+
       <div class="info-message" id="firebaseNotConfigured" hidden>
         <strong>Firebase Not Configured</strong><br>
         Your scans are being saved locally. To sync across devices, configure Firebase in your project.
@@ -315,6 +366,9 @@ class BSAuth extends HTMLElement {
   connectedCallback() {
     this.#authStatusEl = this.shadowRoot.getElementById('authStatus');
     this.#authFormsEl = this.shadowRoot.getElementById('authForms');
+
+    // Update Firebase status display
+    this.#updateFirebaseStatus();
 
     // Show Firebase not configured message if needed
     if (!isFirebaseConfigured()) {
@@ -547,23 +601,23 @@ class BSAuth extends HTMLElement {
       // User is signed in
       this.#authStatusEl?.removeAttribute('hidden');
       this.#authFormsEl?.setAttribute('hidden', '');
-
+      
       const userIcon = this.shadowRoot.getElementById('userIcon');
       const userEmail = this.shadowRoot.getElementById('userEmail');
       const userType = this.shadowRoot.getElementById('userType');
-
+      
       if (userIcon) {
         userIcon.textContent = user.email ? user.email[0].toUpperCase() : '?';
       }
-
+      
       if (userEmail) {
         userEmail.textContent = user.email || 'Anonymous User';
       }
-
+      
       if (userType) {
         userType.textContent = user.isAnonymous ? 'Anonymous Account' : 'Email Account';
       }
-
+      
       // Emit custom event
       this.dispatchEvent(new CustomEvent('auth-state-changed', {
         bubbles: true,
@@ -574,13 +628,55 @@ class BSAuth extends HTMLElement {
       // User is signed out
       this.#authStatusEl?.setAttribute('hidden', '');
       this.#authFormsEl?.removeAttribute('hidden');
-
+      
       // Emit custom event
       this.dispatchEvent(new CustomEvent('auth-state-changed', {
         bubbles: true,
         composed: true,
         detail: { user: null }
       }));
+    }
+    
+    // Update Firebase status
+    this.#updateFirebaseStatus();
+  }
+
+  #updateFirebaseStatus() {
+    try {
+      const status = getFirebaseStatus();
+      const statusEl = this.shadowRoot.getElementById('firebaseStatus');
+      const configIcon = this.shadowRoot.getElementById('configIcon');
+      const configStatus = this.shadowRoot.getElementById('configStatus');
+      const authStatusItem = this.shadowRoot.getElementById('authStatusItem');
+      const authIcon = this.shadowRoot.getElementById('authIcon');
+      const authStatus = this.shadowRoot.getElementById('authStatus');
+
+      if (!statusEl) return;
+
+      if (status.configured) {
+        statusEl.classList.add('configured');
+        if (configIcon) configIcon.textContent = '✅';
+        if (configStatus) configStatus.textContent = 'Firebase configured and ready';
+        
+        if (authStatusItem) authStatusItem.removeAttribute('hidden');
+        if (status.authenticated) {
+          if (authIcon) authIcon.textContent = '✅';
+          if (authStatus) {
+            const userInfo = status.user?.isAnonymous ? 'Anonymous user' : (status.user?.email || 'Authenticated');
+            authStatus.textContent = `Authenticated: ${userInfo}`;
+          }
+        } else {
+          if (authIcon) authIcon.textContent = '⚠️';
+          if (authStatus) authStatus.textContent = 'Not authenticated - sign in to sync';
+        }
+      } else {
+        statusEl.classList.remove('configured');
+        if (configIcon) configIcon.textContent = '⚠️';
+        if (configStatus) configStatus.textContent = 'Firebase not configured - using local storage only';
+        if (authStatusItem) authStatusItem.setAttribute('hidden', '');
+      }
+    } catch (error) {
+      log.error('Error updating Firebase status:', error);
     }
   }
 
