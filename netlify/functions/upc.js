@@ -2,7 +2,7 @@
 // Place this file in `netlify/functions/upc.js` and deploy to Netlify. Set the
 // environment variable `UPC_API_KEY` in your Netlify site settings (not in source).
 
-export async function handler(event) {
+exports.handler = async function(event) {
   const UPC_API_BASE = 'https://api.upcdatabase.org';
   const API_KEY = process.env.UPC_API_KEY || '';
 
