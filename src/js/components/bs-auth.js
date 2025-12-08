@@ -302,20 +302,30 @@ template.innerHTML = /* html */ `
       </div>
 
       <div class="auth-tabs">
-        <button class="auth-tab active" data-tab="anonymous">Quick Start</button>
+        <button class="auth-tab" data-tab="signup">Sign Up</button>
         <button class="auth-tab" data-tab="signin">Sign In</button>
-        <button class="auth-tab" data-tab="signup">Create Account</button>
+        <button class="auth-tab active" data-tab="anonymous">Quick Start</button>
       </div>
 
-      <div class="auth-form active" id="anonymousForm">
-        <div class="info-message">
-          <strong>Create an account to get started!</strong><br>
-          You need an account to save and view your scans. All data is securely stored in Firestore and synced across your devices.
-        </div>
-        <button type="button" class="btn" id="anonymousBtn">Sign In Anonymously</button>
-        <p style="text-align:center;margin-top:0.75rem;font-size:0.85rem;color:var(--text-muted);">
-          Or create an account with email for better features
-        </p>
+      <div class="auth-form" id="signupForm">
+        <form>
+          <div class="form-group">
+            <label for="signupEmail">Email</label>
+            <input type="email" id="signupEmail" required autocomplete="email" placeholder="your@email.com">
+          </div>
+          <div class="form-group">
+            <label for="signupPassword">Password</label>
+            <input type="password" id="signupPassword" required autocomplete="new-password" minlength="6" placeholder="At least 6 characters">
+          </div>
+          <div class="form-group">
+            <label for="signupDisplayName">Display Name (optional)</label>
+            <input type="text" id="signupDisplayName" autocomplete="name" placeholder="Your name">
+          </div>
+          <div id="signupError" class="error-message" hidden></div>
+          <button type="submit" class="btn" id="signupBtn">Create Account</button>
+        </form>
+        <div class="divider">or</div>
+        <button type="button" class="btn btn-secondary" id="signupAnonymousBtn">Sign In Anonymously</button>
       </div>
 
       <div class="auth-form" id="signinForm">
@@ -335,25 +345,15 @@ template.innerHTML = /* html */ `
         <button type="button" class="btn btn-secondary" id="signinAnonymousBtn">Sign In Anonymously</button>
       </div>
 
-      <div class="auth-form" id="signupForm">
-        <form>
-          <div class="form-group">
-            <label for="signupEmail">Email</label>
-            <input type="email" id="signupEmail" required autocomplete="email">
-          </div>
-          <div class="form-group">
-            <label for="signupPassword">Password</label>
-            <input type="password" id="signupPassword" required autocomplete="new-password" minlength="6">
-          </div>
-          <div class="form-group">
-            <label for="signupDisplayName">Display Name (optional)</label>
-            <input type="text" id="signupDisplayName" autocomplete="name">
-          </div>
-          <div id="signupError" class="error-message" hidden></div>
-          <button type="submit" class="btn" id="signupBtn">Create Account</button>
-        </form>
-        <div class="divider">or</div>
-        <button type="button" class="btn btn-secondary" id="signupAnonymousBtn">Sign In Anonymously</button>
+      <div class="auth-form active" id="anonymousForm">
+        <div class="info-message">
+          <strong>Quick Start</strong><br>
+          Sign in anonymously to get started immediately, or create an account with email for better features.
+        </div>
+        <button type="button" class="btn" id="anonymousBtn">Sign In Anonymously</button>
+        <p style="text-align:center;margin-top:0.75rem;font-size:0.85rem;color:var(--text-muted);">
+          Or use the <strong>Sign Up</strong> tab to create an account with email
+        </p>
       </div>
     </div>
   </div>
