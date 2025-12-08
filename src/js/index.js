@@ -998,7 +998,10 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
     if (navAuthBtn && navAuthText) {
       if (user) {
         navAuthBtn.classList.add('authenticated');
-        navAuthText.textContent = user.email || 'Account';
+        const displayText = user.email 
+          ? (user.email.length > 15 ? user.email.substring(0, 15) + '...' : user.email)
+          : (user.isAnonymous ? 'Anonymous' : 'Account');
+        navAuthText.textContent = displayText;
       } else {
         navAuthBtn.classList.remove('authenticated');
         navAuthText.textContent = 'Login';
@@ -1006,15 +1009,21 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
     }
   }
 
-  // Listen to auth state changes
+  // Listen to auth state changes from bs-auth component
   document.addEventListener('auth-state-changed', (evt) => {
     updateNavAuthButton(evt.detail.user);
   });
 
-  // Check initial auth state
-  import('./services/firebase-auth.js').then(({ getCurrentUser }) => {
+  // Also subscribe to Firebase auth state changes
+  import('./services/firebase-auth.js').then(({ onAuthStateChange, getCurrentUser }) => {
+    // Check initial auth state
     const currentUser = getCurrentUser();
     updateNavAuthButton(currentUser);
+    
+    // Subscribe to future changes
+    onAuthStateChange((user) => {
+      updateNavAuthButton(user);
+    });
   });
 
   // Navigation search handler
