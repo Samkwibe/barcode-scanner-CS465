@@ -211,7 +211,7 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
     if (desc.textContent) itemInfoEl.appendChild(desc);
   }
 
-  async function handleFetchedItemInfo(barcodeValue, panelEl, barcodeFormat = '', shouldShowConfirm = true) {
+  async function handleFetchedItemInfo(barcodeValue, panelEl, barcodeFormat = '', shouldShowConfirm = false) {
     try {
       const info = await fetchItemInfo(barcodeValue);
       const scanData = {
@@ -227,43 +227,35 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
         }
       };
 
-      const [, settings] = await getSettings();
-
-      // Check if we should show confirmation dialog
-      if (shouldShowConfirm && settings?.showConfirmDialog !== false) {
-        // Show confirmation dialog
-        pendingScanData = scanData;
-        if (scanConfirmEl && scanConfirmDialog) {
-          await scanConfirmEl.show(scanData);
-          scanConfirmDialog.open = true;
-        }
-        return scanData;
-      }
-
-      // If no confirmation needed, save directly
+      // Auto-save immediately
       await saveScanData(scanData);
       
-      if (info) {
-        const name = info.title || info.name || info.alias || '';
-        const desc = info.description || info.brand || '';
-        const msg = `${name || barcodeValue}${desc ? ` — ${desc}` : ''}`;
-        toastify(msg, { variant: 'success' });
+      // Show beautiful product display immediately
+      if (info && productDetailsEl && productDetailsDialog) {
+        await productDetailsEl.show(scanData);
+        productDetailsDialog.open = true;
+      } else if (info) {
+        // Fallback: render inline if modal not available
         renderItemDetails(panelEl, info);
+      }
 
-        // Also update the inline result element (bs-result) next to the scanned UPC
-        try {
-          const resultsContainer = panelEl?.querySelector('.results');
-          if (resultsContainer) {
-            const resultEl = resultsContainer.querySelector(`bs-result[value="${barcodeValue}"]`);
-            if (resultEl) {
-              if (info.title) resultEl.setAttribute('data-title', info.title);
-              if (info.brand) resultEl.setAttribute('data-brand', info.brand);
-              if (info.description) resultEl.setAttribute('data-description', info.description);
-            }
+      // Show success toast
+      const name = info?.title || info?.name || info?.alias || barcodeValue;
+      toastify(`✅ ${name} scanned and saved!`, { variant: 'success', duration: 3000 });
+
+      // Update inline result element
+      try {
+        const resultsContainer = panelEl?.querySelector('.results');
+        if (resultsContainer) {
+          const resultEl = resultsContainer.querySelector(`bs-result[value="${barcodeValue}"]`);
+          if (resultEl && info) {
+            if (info.title) resultEl.setAttribute('data-title', info.title);
+            if (info.brand) resultEl.setAttribute('data-brand', info.brand);
+            if (info.description) resultEl.setAttribute('data-description', info.description);
           }
-        } catch (e) {
-          // non-fatal
         }
+      } catch (e) {
+        // non-fatal
       }
 
       return scanData;
@@ -280,16 +272,16 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
         }
       };
 
-      const [, settings] = await getSettings();
-      if (settings?.showConfirmDialog !== false) {
-        pendingScanData = scanData;
-        if (scanConfirmEl && scanConfirmDialog) {
-          await scanConfirmEl.show(scanData);
-          scanConfirmDialog.open = true;
-        }
-      } else {
-        await saveScanData(scanData);
+      // Auto-save even if lookup failed
+      await saveScanData(scanData);
+      
+      // Show product details modal with basic info
+      if (productDetailsEl && productDetailsDialog) {
+        await productDetailsEl.show(scanData);
+        productDetailsDialog.open = true;
       }
+
+      toastify(`📦 Barcode ${barcodeValue} scanned and saved!`, { variant: 'success', duration: 3000 });
 
       return scanData;
     }

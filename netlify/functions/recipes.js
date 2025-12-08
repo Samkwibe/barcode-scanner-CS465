@@ -1,7 +1,7 @@
 // Netlify Function to get recipes from TheMealDB API
 // Endpoint: /.netlify/functions/recipes
 
-export async function handler(event) {
+exports.handler = async function(event) {
   const THEMEALDB_BASE = 'https://www.themealdb.com/api/json/v1/1';
   
   // CORS headers
@@ -95,5 +95,5 @@ export async function handler(event) {
       })
     };
   }
-}
+};
 
