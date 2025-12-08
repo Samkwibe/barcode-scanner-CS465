@@ -285,10 +285,6 @@ template.innerHTML = /* html */ `
           <span class="status-icon" id="configIcon">⚙️</span>
           <span id="configStatus">Checking Firebase configuration...</span>
         </div>
-        <div class="status-item" id="authStatusItem" hidden>
-          <span class="status-icon" id="authIcon">👤</span>
-          <span id="authStatus">Not authenticated</span>
-        </div>
       </div>
 
       <div class="info-message" id="firebaseNotConfigured" hidden>
@@ -654,9 +650,6 @@ class BSAuth extends HTMLElement {
       const statusEl = this.shadowRoot.getElementById('firebaseStatus');
       const configIcon = this.shadowRoot.getElementById('configIcon');
       const configStatus = this.shadowRoot.getElementById('configStatus');
-      const authStatusItem = this.shadowRoot.getElementById('authStatusItem');
-      const authIcon = this.shadowRoot.getElementById('authIcon');
-      const authStatus = this.shadowRoot.getElementById('authStatus');
 
       if (!statusEl) return;
 
@@ -664,23 +657,10 @@ class BSAuth extends HTMLElement {
         statusEl.classList.add('configured');
         if (configIcon) configIcon.textContent = '✅';
         if (configStatus) configStatus.textContent = 'Firebase configured and ready';
-        
-        if (authStatusItem) authStatusItem.removeAttribute('hidden');
-        if (status.authenticated) {
-          if (authIcon) authIcon.textContent = '✅';
-          if (authStatus) {
-            const userInfo = status.user?.isAnonymous ? 'Anonymous user' : (status.user?.email || 'Authenticated');
-            authStatus.textContent = `Authenticated: ${userInfo}`;
-          }
-        } else {
-          if (authIcon) authIcon.textContent = '⚠️';
-          if (authStatus) authStatus.textContent = 'Not authenticated - sign in to sync';
-        }
       } else {
         statusEl.classList.remove('configured');
         if (configIcon) configIcon.textContent = '⚠️';
         if (configStatus) configStatus.textContent = 'Firebase not configured - configure to save scans';
-        if (authStatusItem) authStatusItem.setAttribute('hidden', '');
       }
     } catch (error) {
       log.error('Error updating Firebase status:', error);
