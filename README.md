@@ -222,3 +222,7 @@ For issues, questions, or suggestions:
 
 **Built with ❤️ by the CS465 Team**  
 **Last Updated**: December 2025
+
+## Recent Updates
+
+- **Image Feature** (Jon Scott): Users can scan barcodes and view product images in the scan history. Image URLs are displayed for each scanned item.
