@@ -832,6 +832,40 @@ alert-element {
   opacity: 0.9;
 }
 
+.nav-auth-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.nav-auth-button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.nav-auth-button svg {
+  flex-shrink: 0;
+}
+
+.nav-auth-button.authenticated {
+  background: rgba(22, 163, 74, 0.9);
+}
+
+.nav-auth-button.authenticated:hover {
+  background: rgba(22, 163, 74, 1);
+}
+
 .navigation a {
   text-decoration: none;
   display: block;

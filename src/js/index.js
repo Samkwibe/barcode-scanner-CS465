@@ -110,6 +110,8 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
   const homeLink = document.getElementById('homeLink');
   const navSearchForm = document.getElementById('navSearchForm');
   const navSearchInput = document.getElementById('navSearchInput');
+  const navAuthBtn = document.getElementById('navAuthBtn');
+  const navAuthText = document.getElementById('navAuthText');
   const SCAN_RATE_LIMIT = 1000;
   let scanTimeoutId = null;
   let shouldScan = true;
@@ -981,6 +983,38 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
   homeLink?.addEventListener('click', (e) => {
     e.preventDefault();
     showPage('home');
+  });
+
+  // Navigation auth button handler
+  navAuthBtn?.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (authDialog) {
+      authDialog.open = true;
+    }
+  });
+
+  // Update nav auth button based on auth state
+  function updateNavAuthButton(user) {
+    if (navAuthBtn && navAuthText) {
+      if (user) {
+        navAuthBtn.classList.add('authenticated');
+        navAuthText.textContent = user.email || 'Account';
+      } else {
+        navAuthBtn.classList.remove('authenticated');
+        navAuthText.textContent = 'Login';
+      }
+    }
+  }
+
+  // Listen to auth state changes
+  document.addEventListener('auth-state-changed', (evt) => {
+    updateNavAuthButton(evt.detail.user);
+  });
+
+  // Check initial auth state
+  import('./services/firebase-auth.js').then(({ getCurrentUser }) => {
+    const currentUser = getCurrentUser();
+    updateNavAuthButton(currentUser);
   });
 
   // Navigation search handler
