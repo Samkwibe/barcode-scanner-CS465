@@ -28,9 +28,16 @@ class BSSettings extends HTMLElement {
     const [, settings] = await getSettings();
     this.#settings = settings ?? {};
 
+    // Set checkbox states
     this.#formEl?.querySelectorAll(`[name="general-settings"]`).forEach(input => {
-      input.checked = this.#settings[input.value];
+      input.checked = this.#settings[input.value] ?? false;
     });
+
+    // Set expiration days input
+    const expirationDaysInput = this.#formEl?.querySelector('#expirationDays');
+    if (expirationDaysInput) {
+      expirationDaysInput.value = this.#settings.expirationDays || 30;
+    }
   }
 
   #renderFormats() {

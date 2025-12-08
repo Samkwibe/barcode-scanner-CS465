@@ -365,10 +365,16 @@ class BSHistory extends HTMLElement {
   // Notify a warning before expiry (ms). Default is 1 day (pre-notify one day before expiry).
   #PRE_NOTIFY_THRESHOLD_MS = 24 * 60 * 60 * 1000; // 1 day
 
-  // Default expiry (7 days) in ms
-  static #DEFAULT_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
+  // Default expiry (30 days) in ms - can be overridden by settings
+  static #DEFAULT_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000;
+  
+  // Cached expiry from settings (updated when settings change)
+  static #cachedExpiryMs = null;
+  static #expiryCacheTime = 0;
+  static #CACHE_DURATION_MS = 5000; // Cache for 5 seconds
 
   // Read optional test expiry seconds from URL: ?testExpireSeconds=5
+  // Also checks user settings for expirationDays preference (cached)
   static #getDefaultExpiryMs() {
     try {
       const params = new URLSearchParams(window.location.search);
@@ -377,18 +383,46 @@ class BSHistory extends HTMLElement {
       if (!Number.isNaN(n) && n > 0) {
         return n * 1000;
       }
-      // Convenience test mode: `?testMode=1` or `?testMode=true` sets expiry to 5s
+      // Convenience test mode: `?testMode=1` or `?testMode=true` sets expiry to 10s
       const testMode = params.get('testMode');
       if (testMode === '1' || String(testMode).toLowerCase() === 'true') {
         return 10 * 1000;
       }
-      // Note: do not auto-detect localhost/file as test mode —
-      // default expiry remains the configured value (7 days) unless
-      // overridden explicitly via URL params.
+      
+      // Use cached value if available and fresh
+      const now = Date.now();
+      if (BSHistory.#cachedExpiryMs !== null && (now - BSHistory.#expiryCacheTime) < BSHistory.#CACHE_DURATION_MS) {
+        return BSHistory.#cachedExpiryMs;
+      }
+      
+      // Try to get from settings (synchronously from cache if possible)
+      // Note: Settings are loaded asynchronously, so we'll update cache in connectedCallback
+      // For now, return default and let async update happen
     } catch (_e) {
       // ignore
     }
-    return BSHistory.#DEFAULT_EXPIRY_MS;
+    return BSHistory.#cachedExpiryMs ?? BSHistory.#DEFAULT_EXPIRY_MS;
+  }
+  
+  // Update cached expiry from settings (called asynchronously)
+  static async #updateCachedExpiry() {
+    try {
+      const { getSettings } = await import('../services/storage.js');
+      const [, settings] = await getSettings();
+      if (settings?.expirationDays && typeof settings.expirationDays === 'number') {
+        const days = Math.max(1, Math.min(365, settings.expirationDays)); // Clamp between 1-365 days
+        BSHistory.#cachedExpiryMs = days * 24 * 60 * 60 * 1000;
+        BSHistory.#expiryCacheTime = Date.now();
+        log.info(`Updated expiration days from settings: ${days} days`);
+      } else {
+        // Reset to default if no setting
+        BSHistory.#cachedExpiryMs = BSHistory.#DEFAULT_EXPIRY_MS;
+        BSHistory.#expiryCacheTime = Date.now();
+      }
+    } catch (settingsError) {
+      log.warn('Could not load expiration days from settings:', settingsError);
+      BSHistory.#cachedExpiryMs = BSHistory.#DEFAULT_EXPIRY_MS;
+    }
   }
 
   constructor() {
@@ -407,6 +441,8 @@ class BSHistory extends HTMLElement {
     this.#noResultsEl = this.shadowRoot?.getElementById('noResults');
     this.#filterChips = this.shadowRoot?.querySelectorAll('.filter-chip');
     
+    // Update cached expiry from settings
+    await BSHistory.#updateCachedExpiry();
 
     // Always load from local storage first (this persists across logout)
     const [, rawHistory = []] = await getHistory();

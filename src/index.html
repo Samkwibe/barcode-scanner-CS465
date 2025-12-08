@@ -300,6 +300,40 @@
           </ul>
         </fieldset>
 
+        <fieldset>
+          <legend>Expiration & Notifications</legend>
+          <ul>
+            <li>
+              <label>
+                Default expiration days:
+                <input type="number" name="expiration-days" id="expirationDays" min="1" max="365" value="30" style="width: 80px; margin-left: 0.5rem;">
+              </label>
+              <small class="text-muted fw-normal" style="display: block; margin-top: 0.25rem; margin-left: 1.5rem;">Default: 30 days from scan date</small>
+            </li>
+            <li><label><input type="checkbox" name="general-settings" value="enableNotifications">Enable browser notifications</label></li>
+            <li><label><input type="checkbox" name="general-settings" value="notifyBeforeExpiry">Notify before expiration (1 day before)</label></li>
+            <li><label><input type="checkbox" name="general-settings" value="showCountdownInHistory">Show countdown timer in history</label></li>
+          </ul>
+        </fieldset>
+
+        <fieldset>
+          <legend>Display & UI</legend>
+          <ul>
+            <li><label><input type="checkbox" name="general-settings" value="showProductImages">Show product images</label></li>
+            <li><label><input type="checkbox" name="general-settings" value="autoOpenHistory">Auto-open history after scan</label></li>
+            <li><label><input type="checkbox" name="general-settings" value="showInlineProductInfo">Show product info inline (below camera)</label></li>
+            <li><label><input type="checkbox" name="general-settings" value="animateTransitions">Enable animations</label></li>
+          </ul>
+        </fieldset>
+
+        <fieldset>
+          <legend>Firebase & Sync</legend>
+          <ul>
+            <li><label><input type="checkbox" name="general-settings" value="autoSyncFirebase">Auto-sync with Firebase</label></li>
+            <li><label><input type="checkbox" name="general-settings" value="syncOnReconnect">Sync when reconnecting online</label></li>
+          </ul>
+        </fieldset>
+
         <fieldset name="bs-formats">
           <legend>
             Supported formats

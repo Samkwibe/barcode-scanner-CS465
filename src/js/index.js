@@ -448,8 +448,8 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
       if (settings?.addToHistory && !settings?.showConfirmDialog) {
         try {
           await bsHistoryEl?.add(barcodeValue);
-          // Open history and scroll the new item into view so countdown is visible immediately
-          if (historyDialog) {
+          // Auto-open history if setting is enabled
+          if (settings?.autoOpenHistory && historyDialog) {
             historyDialog.open = true;
             // small timeout to allow history element to render
             setTimeout(() => {
@@ -784,6 +784,15 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
     const formData = new FormData(settingsForm);
     const generalSettings = formData.getAll('general-settings');
     const formatsSettings = formData.getAll('formats-settings');
+    
+    // Get expiration days (number input)
+    const expirationDays = formData.get('expiration-days');
+    if (expirationDays) {
+      const days = parseInt(expirationDays, 10);
+      if (!isNaN(days) && days >= 1 && days <= 365) {
+        settings.expirationDays = days;
+      }
+    }
 
     generalSettings.forEach(value => (settings[value] = true));
     settings.formats = formatsSettings;
@@ -792,6 +801,9 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
     if (evt.target.name === 'formats-settings') {
       barcodeReader = await BarcodeReader.create(formatsSettings);
     }
+
+    // Show confirmation that settings were saved
+    toastify('Settings saved successfully!', { variant: 'success', duration: 2000 });
   }
 
   /**
