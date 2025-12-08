@@ -4,221 +4,561 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Barcode Scanner - Smart Product Tracking</title>
-  <meta name="description" content="A modern Progressive Web App for scanning barcodes, tracking products, managing inventory, and discovering recipes.">
+  <title>Barcode Scanner - Smart Food & Product Tracking</title>
+  <meta name="description" content="Track your groceries, manage expiration dates, discover recipes, and never waste food again. A modern Progressive Web App for smart kitchen management.">
+  <link rel="shortcut icon" href="assets/app-icons/favicon.ico">
+  <link rel="apple-touch-icon" href="assets/app-icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0066cc">
   <link rel="stylesheet" href="css/main.css">
   <style>
-    .landing-hero {
-      background: linear-gradient(135deg, var(--accent) 0%, var(--primary-color, #0066cc) 100%);
-      color: white;
-      padding: 4rem 2rem;
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-family);
+      color: var(--text-main);
+      background: var(--background-body);
+      overflow-x: hidden;
+    }
+
+    /* Hero Section with Food Images */
+    .hero {
+      position: relative;
+      min-height: 90vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       text-align: center;
-      margin-bottom: 3rem;
+      color: white;
+      background: linear-gradient(135deg, rgba(0, 102, 204, 0.9) 0%, rgba(0, 150, 255, 0.85) 100%),
+                  url('https://images.unsplash.com/photo-1542838132-92c53300491e?w=1920&q=80') center/cover;
+      background-blend-mode: overlay;
+      padding: 4rem 2rem;
+      overflow: hidden;
     }
 
-    .landing-hero h1 {
-      font-size: 3rem;
-      margin: 0 0 1rem 0;
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        url('https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=800&q=80') top left/30% no-repeat,
+        url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&q=80') top right/30% no-repeat,
+        url('https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&q=80') bottom left/30% no-repeat,
+        url('https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800&q=80') bottom right/30% no-repeat;
+      opacity: 0.15;
+      z-index: 0;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      max-width: 800px;
+      animation: fadeInUp 0.8s ease-out;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 5vw, 4rem);
       font-weight: 700;
+      margin-bottom: 1.5rem;
+      text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+      line-height: 1.2;
     }
 
-    .landing-hero p {
-      font-size: 1.25rem;
-      margin: 0 0 2rem 0;
+    .hero p {
+      font-size: clamp(1.1rem, 2vw, 1.5rem);
+      margin-bottom: 2.5rem;
       opacity: 0.95;
+      text-shadow: 1px 1px 4px rgba(0,0,0,0.2);
+      line-height: 1.6;
     }
 
-    .landing-cta {
+    .cta-button {
       display: inline-block;
-      padding: 1rem 2rem;
+      padding: 1.25rem 3rem;
       background: white;
       color: var(--accent);
       text-decoration: none;
-      border-radius: var(--border-radius);
+      border-radius: 50px;
       font-weight: 600;
-      font-size: 1.1rem;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      font-size: 1.2rem;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      border: 2px solid transparent;
     }
 
-    .landing-cta:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    .cta-button:hover {
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+      background: var(--accent);
+      color: white;
     }
 
-    .landing-features {
+    /* Food Image Gallery Section */
+    .food-gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 0;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    .food-item {
+      position: relative;
+      aspect-ratio: 1;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+
+    .food-item:hover {
+      transform: scale(1.1);
+      z-index: 2;
+    }
+
+    .food-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: filter 0.3s ease;
+    }
+
+    .food-item:hover img {
+      filter: brightness(1.1);
+    }
+
+    .food-item::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.3) 100%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .food-item:hover::after {
+      opacity: 1;
+    }
+
+    /* Features Section */
+    .features {
       max-width: 1200px;
       margin: 0 auto;
-      padding: 0 2rem 4rem;
+      padding: 5rem 2rem;
     }
 
-    .landing-features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 2rem;
-      margin-top: 2rem;
-    }
-
-    .landing-feature {
-      padding: 2rem;
-      background: var(--background-alt);
-      border-radius: var(--border-radius);
-      border: 1px solid var(--border);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .landing-feature:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-    }
-
-    .landing-feature-icon {
-      font-size: 3rem;
+    .section-title {
+      text-align: center;
+      font-size: clamp(2rem, 4vw, 3rem);
       margin-bottom: 1rem;
+      color: var(--text-main);
+      font-weight: 700;
     }
 
-    .landing-feature h3 {
+    .section-subtitle {
+      text-align: center;
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      margin-bottom: 4rem;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2.5rem;
+      margin-top: 3rem;
+    }
+
+    .feature-card {
+      background: var(--background-alt);
+      padding: 2.5rem;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      transition: all 0.3s ease;
+      text-align: center;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+      border-color: var(--accent);
+    }
+
+    .feature-icon {
+      font-size: 4rem;
+      margin-bottom: 1.5rem;
+      display: block;
+    }
+
+    .feature-card h3 {
+      font-size: 1.75rem;
+      margin-bottom: 1rem;
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .feature-card p {
+      color: var(--text-muted);
+      line-height: 1.7;
+      font-size: 1.05rem;
+    }
+
+    /* Stats Section */
+    .stats {
+      background: linear-gradient(135deg, var(--accent) 0%, #0052a3 100%);
+      color: white;
+      padding: 4rem 2rem;
+      margin: 4rem 0;
+    }
+
+    .stats-grid {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 3rem;
+      text-align: center;
+    }
+
+    .stat-item h3 {
+      font-size: 3rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-item p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+
+    /* How It Works */
+    .how-it-works {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 5rem 2rem;
+      background: var(--background-alt);
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 3rem;
+      margin-top: 3rem;
+    }
+
+    .step {
+      text-align: center;
+      position: relative;
+    }
+
+    .step-number {
+      width: 60px;
+      height: 60px;
+      background: var(--accent);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 1.5rem;
-      margin: 0 0 0.5rem 0;
+      font-weight: 700;
+      margin: 0 auto 1.5rem;
+      box-shadow: 0 4px 15px rgba(0, 102, 204, 0.3);
+    }
+
+    .step h3 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
       color: var(--text-main);
     }
 
-    .landing-feature p {
+    .step p {
       color: var(--text-muted);
-      line-height: 1.6;
+      line-height: 1.7;
+    }
+
+    /* CTA Section */
+    .final-cta {
+      text-align: center;
+      padding: 6rem 2rem;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    }
+
+    .final-cta h2 {
+      font-size: clamp(2rem, 4vw, 3rem);
+      margin-bottom: 1.5rem;
+      color: var(--text-main);
+    }
+
+    .final-cta p {
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      margin-bottom: 2.5rem;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* Footer */
+    .landing-footer {
+      background: var(--background-alt);
+      padding: 3rem 2rem;
+      text-align: center;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border);
+    }
+
+    .landing-footer p {
+      margin: 0.5rem 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero {
+        min-height: 70vh;
+        padding: 3rem 1.5rem;
+      }
+
+      .food-gallery {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .features-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2rem;
+      }
+
+      .steps {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Navigation Bar */
+    .landing-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 1000;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .landing-nav h2 {
+      font-size: 1.5rem;
+      color: var(--accent);
       margin: 0;
     }
 
-    .landing-section {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 4rem 2rem;
-    }
-
-    .landing-section h2 {
-      font-size: 2.5rem;
-      text-align: center;
-      margin-bottom: 2rem;
-      color: var(--text-main);
-    }
-
-    .landing-tech {
-      background: var(--background-alt);
-      border-radius: var(--border-radius);
-      padding: 2rem;
-      margin-top: 2rem;
-    }
-
-    .landing-tech-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      justify-content: center;
-      margin-top: 1rem;
-    }
-
-    .landing-tech-item {
-      padding: 0.5rem 1rem;
-      background: white;
+    .landing-nav a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      padding: 0.5rem 1.5rem;
       border-radius: 20px;
-      font-size: 0.9rem;
-      color: var(--text-main);
-      border: 1px solid var(--border);
+      transition: all 0.2s ease;
     }
 
-    @media (max-width: 768px) {
-      .landing-hero h1 {
-        font-size: 2rem;
-      }
+    .landing-nav a:hover {
+      background: var(--accent);
+      color: white;
+    }
 
-      .landing-hero p {
-        font-size: 1rem;
-      }
-
-      .landing-features-grid {
-        grid-template-columns: 1fr;
-      }
+    body {
+      padding-top: 70px;
     }
   </style>
 </head>
 <body>
-  <div class="landing-hero">
-    <h1>📱 Barcode Scanner</h1>
-    <p>Smart product tracking, inventory management, and recipe discovery all in one app</p>
-    <a href="index.html" class="landing-cta">Start Scanning →</a>
-  </div>
+  <!-- Navigation -->
+  <nav class="landing-nav">
+    <h2>📱 Barcode Scanner</h2>
+    <a href="index.html">Start Scanning →</a>
+  </nav>
 
-  <div class="landing-features">
-    <h2>Features</h2>
-    <div class="landing-features-grid">
-      <div class="landing-feature">
-        <div class="landing-feature-icon">📷</div>
-        <h3>Camera Scanning</h3>
-        <p>Scan barcodes and QR codes directly from your device's camera. Fast, accurate, and works offline.</p>
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-content">
+      <h1>Never Waste Food Again</h1>
+      <p>Track your groceries, manage expiration dates, discover recipes, and keep your kitchen organized with smart barcode scanning.</p>
+      <a href="index.html" class="cta-button">Start Scanning Free →</a>
+    </div>
+  </section>
+
+  <!-- Food Image Gallery -->
+  <section class="food-gallery">
+    <div class="food-item">
+      <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80" alt="Fresh vegetables" loading="lazy">
+    </div>
+    <div class="food-item">
+      <img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=500&q=80" alt="Delicious pizza" loading="lazy">
+    </div>
+    <div class="food-item">
+      <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=500&q=80" alt="Healthy breakfast" loading="lazy">
+    </div>
+    <div class="food-item">
+      <img src="https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=500&q=80" alt="Grilled food" loading="lazy">
+    </div>
+    <div class="food-item">
+      <img src="https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500&q=80" alt="Fresh salad" loading="lazy">
+    </div>
+    <div class="food-item">
+      <img src="https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=500&q=80" alt="Gourmet meal" loading="lazy">
+    </div>
+    <div class="food-item">
+      <img src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500&q=80" alt="Colorful food" loading="lazy">
+    </div>
+    <div class="food-item">
+      <img src="https://images.unsplash.com/photo-1509440159596-0249088772ff?w=500&q=80" alt="Fresh fruits" loading="lazy">
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features">
+    <h2 class="section-title">Everything You Need</h2>
+    <p class="section-subtitle">Smart features to help you manage your kitchen and reduce food waste</p>
+    
+    <div class="features-grid">
+      <div class="feature-card">
+        <span class="feature-icon">📷</span>
+        <h3>Instant Scanning</h3>
+        <p>Scan any barcode with your phone's camera. Get product information instantly - no typing, no searching.</p>
       </div>
 
-      <div class="landing-feature">
-        <div class="landing-feature-icon">📦</div>
-        <h3>Product Information</h3>
-        <p>Instantly get detailed product information including name, brand, description, and images from UPC codes.</p>
+      <div class="feature-card">
+        <span class="feature-icon">📦</span>
+        <h3>Product Details</h3>
+        <p>See product name, brand, description, and images automatically. Know exactly what you're buying.</p>
       </div>
 
-      <div class="landing-feature">
-        <div class="landing-feature-icon">⏰</div>
+      <div class="feature-card">
+        <span class="feature-icon">⏰</span>
         <h3>Expiration Tracking</h3>
-        <p>Track expiration dates with visual countdown timers. Get notified when items are about to expire.</p>
+        <p>Set custom expiration dates and get notified before items expire. Never waste food again.</p>
       </div>
 
-      <div class="landing-feature">
-        <div class="landing-feature-icon">☁️</div>
+      <div class="feature-card">
+        <span class="feature-icon">☁️</span>
         <h3>Cloud Sync</h3>
-        <p>All your scans are securely saved to Firebase and synced across all your devices automatically.</p>
+        <p>All your scans are saved securely in the cloud. Access them from any device, anytime.</p>
       </div>
 
-      <div class="landing-feature">
-        <div class="landing-feature-icon">📚</div>
-        <h3>Scan History</h3>
-        <p>View your complete scan history with search and filters. Never lose track of what you've scanned.</p>
+      <div class="feature-card">
+        <span class="feature-icon">📚</span>
+        <h3>Smart History</h3>
+        <p>Search and filter your scan history. Find items quickly with powerful search tools.</p>
       </div>
 
-      <div class="landing-feature">
-        <div class="landing-feature-icon">🍳</div>
+      <div class="feature-card">
+        <span class="feature-icon">🍳</span>
         <h3>Recipe Discovery</h3>
-        <p>Get recipe suggestions based on your scanned ingredients. Make the most of what you have!</p>
+        <p>Get recipe suggestions based on your scanned ingredients. Cook amazing meals with what you have.</p>
       </div>
     </div>
-  </div>
+  </section>
 
-  <div class="landing-section">
-    <h2>About This Project</h2>
-    <p style="text-align: center; max-width: 800px; margin: 0 auto; line-height: 1.8; color: var(--text-muted);">
-      This is a full-featured Progressive Web Application (PWA) built for CS465. It demonstrates modern web technologies 
-      including Firebase Authentication, Firestore database, barcode detection API, and responsive design. 
-      The app works seamlessly on both mobile and desktop devices, with offline support and cloud synchronization.
+  <!-- Stats Section -->
+  <section class="stats">
+    <div class="stats-grid">
+      <div class="stat-item">
+        <h3>100%</h3>
+        <p>Free to Use</p>
+      </div>
+      <div class="stat-item">
+        <h3>∞</h3>
+        <p>Unlimited Scans</p>
+      </div>
+      <div class="stat-item">
+        <h3>24/7</h3>
+        <p>Always Available</p>
+      </div>
+      <div class="stat-item">
+        <h3>📱</h3>
+        <p>Works on Any Device</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section class="how-it-works">
+    <h2 class="section-title">How It Works</h2>
+    <p class="section-subtitle">Get started in seconds - it's that simple</p>
+    
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">1</div>
+        <h3>Sign Up Free</h3>
+        <p>Create an account in seconds. No credit card required. Start tracking immediately.</p>
+      </div>
+
+      <div class="step">
+        <div class="step-number">2</div>
+        <h3>Scan Products</h3>
+        <p>Point your camera at any barcode. Get instant product information and details.</p>
+      </div>
+
+      <div class="step">
+        <div class="step-number">3</div>
+        <h3>Set Expiration</h3>
+        <p>Add custom expiration dates. Get smart notifications before items expire.</p>
+      </div>
+
+      <div class="step">
+        <div class="step-number">4</div>
+        <h3>Discover Recipes</h3>
+        <p>Get recipe suggestions based on your scanned items. Cook amazing meals!</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="final-cta">
+    <h2>Ready to Get Started?</h2>
+    <p>Join thousands of users who are already managing their kitchens smarter. It's free, fast, and easy.</p>
+    <a href="index.html" class="cta-button">Start Scanning Now →</a>
+  </section>
+
+  <!-- Footer -->
+  <footer class="landing-footer">
+    <p><strong>Barcode Scanner App</strong> - Smart Food & Product Tracking</p>
+    <p>Built with ❤️ for CS465 | Powered by Firebase & Modern Web Technologies</p>
+    <p style="margin-top: 1rem; font-size: 0.9rem;">
+      <a href="index.html" style="color: var(--accent); text-decoration: none;">Go to App →</a>
     </p>
-
-    <div class="landing-tech">
-      <h3 style="text-align: center; margin-bottom: 1rem;">Built With</h3>
-      <div class="landing-tech-list">
-        <span class="landing-tech-item">Firebase Authentication</span>
-        <span class="landing-tech-item">Firestore Database</span>
-        <span class="landing-tech-item">Barcode Detection API</span>
-        <span class="landing-tech-item">Progressive Web App</span>
-        <span class="landing-tech-item">Web Components</span>
-        <span class="landing-tech-item">Netlify Functions</span>
-        <span class="landing-tech-item">Responsive Design</span>
-        <span class="landing-tech-item">Offline Support</span>
-      </div>
-    </div>
-  </div>
-
-  <div style="text-align: center; padding: 2rem; background: var(--background-alt); margin-top: 4rem;">
-    <a href="index.html" class="landing-cta" style="display: inline-block;">Get Started Now →</a>
-  </div>
-
-  <footer style="text-align: center; padding: 2rem; color: var(--text-muted);">
-    <p>Barcode Scanner App - CS465 Project</p>
-    <p style="font-size: 0.9rem; margin-top: 0.5rem;">Built with ❤️ by the CS465 Team</p>
   </footer>
 </body>
 </html>
-

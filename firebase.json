@@ -19,6 +19,10 @@
         "function": "upc"
       },
       {
+        "source": "/landing.html",
+        "destination": "/landing.html"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
