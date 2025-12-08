@@ -224,9 +224,16 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
       img.className = 'item-info__image';
       img.src = info.image || info.images[0];
       img.alt = info.title || info.name || 'Product image';
+      img.loading = 'lazy'; // Lazy load images for better performance
       img.onerror = function() {
         log.warn('Product image failed to load:', this.src);
         this.style.display = 'none';
+        // Show placeholder on error
+        const placeholder = document.createElement('div');
+        placeholder.className = 'item-info__image-placeholder';
+        placeholder.innerHTML = '📦';
+        placeholder.style.cssText = 'width: 100%; max-width: 300px; height: 200px; display: flex; align-items: center; justify-content: center; font-size: 4rem; background: var(--background-alt); border-radius: 12px; margin: 0 auto 1.25rem;';
+        this.parentNode?.insertBefore(placeholder, this);
       };
       img.onload = function() {
         log.info('Product image loaded successfully:', this.src);
@@ -281,7 +288,7 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
         // Show basic barcode info even if no product found
         const basicInfo = {
           title: `Barcode: ${barcodeValue}`,
-          description: 'Product information not available in database.'
+          description: 'Product information not available in database. The barcode was scanned successfully.'
         };
         renderItemDetails(panelEl, basicInfo);
       }

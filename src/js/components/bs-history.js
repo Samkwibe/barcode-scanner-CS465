@@ -1175,9 +1175,19 @@ class BSHistory extends HTMLElement {
 
   #startCountdownTimer() {
     if (this.#countdownTimerId) return;
-    // update every 1 second for accurate short-lived tests
-    this.#countdownTimerId = setInterval(() => this.#updateCountdowns(), 1000);
-    // run once immediately
+    
+    // Update every 1 second for accurate countdown display
+    // This ensures countdowns are always up-to-date and notifications trigger on time
+    this.#countdownTimerId = setInterval(() => {
+      try {
+        this.#updateCountdowns();
+      } catch (error) {
+        log.error('Error in countdown timer:', error);
+        // Continue running timer even if one update fails
+      }
+    }, 1000);
+    
+    // Run once immediately to show current state
     this.#updateCountdowns();
   }
 
@@ -1270,53 +1280,23 @@ class BSHistory extends HTMLElement {
   async #notifyItemWillExpire(item, timeLeft, nearExpiryCount = 1) {
     try {
       const title = 'Item will expire soon';
-      let body = `${item.value} will expire in ${this.#formatRemaining(timeLeft)}.`;
+      const itemName = item.title || item.value || 'Item';
+      let body = `${itemName} will expire in ${this.#formatRemaining(timeLeft)}.`;
+      
       if (Number.isFinite(nearExpiryCount) && nearExpiryCount > 0) {
         if (nearExpiryCount === 1) {
-          body += ' You have one more item that will expire soon; the next notification will be when it expires.';
+          body += ' You have one more item that will expire soon.';
         } else if (nearExpiryCount > 1) {
-          body += ` You have ${nearExpiryCount} items that will expire soon.`;
+          body += ` You have ${nearExpiryCount} more items that will expire soon.`;
         }
       }
 
-      try { toastify(body, { variant: 'warning' }); } catch (_e) { /* ignore */ }
-
-      if ('Notification' in window) {
-        if (Notification.permission === 'default') {
-          await Notification.requestPermission();
-        }
-
-        if (Notification.permission === 'granted') {
-          new Notification(title, { body });
-        }
+      // In-app toast notification
+      try { 
+        toastify(`⚠️ ${body}`, { variant: 'warning', duration: 5000 }); 
+      } catch (_e) { 
+        // ignore toast errors
       }
-    } catch (_err) {
-      // non-fatal
-    }
-  }
-
-  #formatRemaining(ms) {
-    if (ms <= 0) return '⏰ Expired';
-    const seconds = Math.floor(ms / 1000);
-    const days = Math.floor(seconds / (24 * 3600));
-    const hours = Math.floor((seconds % (24 * 3600)) / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-
-    // Add emoji indicators for better visibility
-    if (days > 0) return `⏳ ${days}d ${hours}h ${minutes}m`;
-    if (hours > 0) return `⏳ ${hours}h ${minutes}m ${secs}s`;
-    if (minutes > 0) return `⚠️ ${minutes}m ${secs}s`;
-    return `🔴 ${secs}s`;
-  }
-
-  async #notifyItemExpired(item) {
-    try {
-      const title = 'Item expired';
-      const body = `${item.value} has expired.`;
-
-      // In-app toast (use danger to indicate expiry)
-      try { toastify(body, { variant: 'danger' }); } catch (_e) { /* ignore */ }
 
       // Browser notification (request permission when needed)
       if ('Notification' in window) {
@@ -1325,10 +1305,87 @@ class BSHistory extends HTMLElement {
         }
 
         if (Notification.permission === 'granted') {
-          new Notification(title, { body });
+          try {
+            new Notification(title, { 
+              body,
+              icon: '/assets/app-icons/icon-small.png',
+              badge: '/assets/app-icons/icon-small.png',
+              tag: `expiring-${item.value}` // Prevent duplicate notifications
+            });
+          } catch (notifError) {
+            log.warn('Error showing notification:', notifError);
+          }
         }
       }
     } catch (_err) {
+      log.warn('Error in notifyItemWillExpire:', _err);
+      // non-fatal
+    }
+  }
+
+  #formatRemaining(ms) {
+    if (ms <= 0) return '⏰ Expired';
+    
+    const seconds = Math.floor(ms / 1000);
+    const days = Math.floor(seconds / (24 * 3600));
+    const hours = Math.floor((seconds % (24 * 3600)) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    // Format with emoji indicators for better visibility and readability
+    if (days > 7) {
+      // More than a week - show days only
+      return `✅ ${days} day${days === 1 ? '' : 's'}`;
+    } else if (days > 0) {
+      // Less than a week - show days and hours
+      return `⏳ ${days}d ${hours}h`;
+    } else if (hours > 0) {
+      // Less than a day - show hours and minutes
+      return `⚠️ ${hours}h ${minutes}m`;
+    } else if (minutes > 0) {
+      // Less than an hour - show minutes and seconds
+      return `🔴 ${minutes}m ${secs}s`;
+    } else {
+      // Less than a minute - show seconds only
+      return `🔴 ${secs}s`;
+    }
+  }
+
+  async #notifyItemExpired(item) {
+    try {
+      const title = 'Item Expired';
+      const itemName = item.title || item.value || 'Item';
+      const body = `${itemName} has expired. Please check if it's still safe to use.`;
+
+      // In-app toast (use danger to indicate expiry)
+      try { 
+        toastify(`⏰ ${body}`, { variant: 'danger', duration: 6000 }); 
+      } catch (_e) { 
+        // ignore toast errors
+      }
+
+      // Browser notification (request permission when needed)
+      if ('Notification' in window) {
+        if (Notification.permission === 'default') {
+          await Notification.requestPermission();
+        }
+
+        if (Notification.permission === 'granted') {
+          try {
+            new Notification(title, { 
+              body,
+              icon: '/assets/app-icons/icon-small.png',
+              badge: '/assets/app-icons/icon-small.png',
+              tag: `expired-${item.value}`, // Prevent duplicate notifications
+              requireInteraction: true // Keep notification visible until user interacts
+            });
+          } catch (notifError) {
+            log.warn('Error showing expiration notification:', notifError);
+          }
+        }
+      }
+    } catch (_err) {
+      log.warn('Error in notifyItemExpired:', _err);
       // non-fatal
     }
   }
