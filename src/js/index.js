@@ -255,6 +255,9 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
 
   async function handleFetchedItemInfo(barcodeValue, panelEl, barcodeFormat = '', shouldShowConfirm = false) {
     try {
+      const [, settings] = await getSettings();
+      const showConfirm = shouldShowConfirm || settings?.showConfirmDialog || false;
+      
       const info = await fetchItemInfo(barcodeValue);
       const scanData = {
         value: barcodeValue,
@@ -269,50 +272,36 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
         }
       };
 
-      // Auto-save immediately
-      await saveScanData(scanData);
-      
-      // ALWAYS render inline first (guaranteed to work and visible)
+      // Show inline product info immediately (always visible at bottom)
       if (info) {
         log.info('Rendering product details inline for:', info.title || info.name || barcodeValue);
         renderItemDetails(panelEl, info);
-        // Scroll to show the product info
-        setTimeout(() => {
-          const itemInfoEl = panelEl.querySelector('#itemInfo');
-          if (itemInfoEl) {
-            itemInfoEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          }
-        }, 100);
       } else {
         log.warn('No product info found for barcode:', barcodeValue);
         // Show basic barcode info even if no product found
         const basicInfo = {
           title: `Barcode: ${barcodeValue}`,
-          description: 'Product information not available in database. The barcode was scanned and saved.'
+          description: 'Product information not available in database.'
         };
         renderItemDetails(panelEl, basicInfo);
       }
-      
-      // Also try to show modal if available (nice bonus feature)
-      if (info && productDetailsEl && productDetailsDialog) {
-        try {
-          log.info('Attempting to show product details modal');
-          if (typeof productDetailsEl.show === 'function') {
-            await productDetailsEl.show(scanData);
-            productDetailsDialog.open = true;
-            log.info('Product details modal opened successfully');
-          } else {
-            log.warn('productDetailsEl.show is not a function');
-          }
-        } catch (modalError) {
-          log.warn('Could not show product details modal:', modalError);
-          // Inline display already shown above, so user still sees the info
-        }
-      }
 
-      // Show success toast
-      const name = info?.title || info?.name || info?.alias || barcodeValue;
-      toastify(`✅ ${name} scanned and saved!`, { variant: 'success', duration: 3000 });
+      // If confirmation is enabled, show dialog and wait for user to save
+      if (showConfirm && scanConfirmEl && scanConfirmDialog) {
+        log.info('Showing confirmation dialog');
+        await scanConfirmEl.show(scanData);
+        scanConfirmDialog.open = true;
+        // Don't save yet - wait for user to click Save button
+        return scanData;
+      } else {
+        // Auto-save immediately if confirmation is disabled
+        log.info('Auto-saving scan (confirmation disabled)');
+        await saveScanData(scanData);
+        
+        // Show success toast
+        const name = info?.title || info?.name || info?.alias || barcodeValue;
+        toastify(`✅ ${name} scanned and saved!`, { variant: 'success', duration: 3000 });
+      }
 
       // Update inline result element
       try {
@@ -343,16 +332,19 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
         }
       };
 
-      // Auto-save even if lookup failed
-      await saveScanData(scanData);
-      
-      // Show product details modal with basic info
-      if (productDetailsEl && productDetailsDialog) {
-        await productDetailsEl.show(scanData);
-        productDetailsDialog.open = true;
-      }
+      const [, settings] = await getSettings();
+      const showConfirm = settings?.showConfirmDialog || false;
 
-      toastify(`📦 Barcode ${barcodeValue} scanned and saved!`, { variant: 'success', duration: 3000 });
+      // If confirmation is enabled, show dialog even for failed lookups
+      if (showConfirm && scanConfirmEl && scanConfirmDialog) {
+        await scanConfirmEl.show(scanData);
+        scanConfirmDialog.open = true;
+        return scanData;
+      } else {
+        // Auto-save even if lookup failed
+        await saveScanData(scanData);
+        toastify(`📦 Barcode ${barcodeValue} scanned and saved!`, { variant: 'success', duration: 3000 });
+      }
 
       return scanData;
     }
@@ -437,12 +429,16 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
         throw new Error('No barcode detected');
       }
 
+      // Show barcode result at bottom of camera view
       createResult(cameraResultsEl, barcodeValue);
 
       // Attempt to fetch item info for 12-14 digit numeric barcodes
-      handleFetchedItemInfo(barcodeValue, cameraPanel, barcodeFormat);
+      // This will show product info inline and handle confirmation dialog if enabled
+      await handleFetchedItemInfo(barcodeValue, cameraPanel, barcodeFormat);
 
-      if (settings?.addToHistory) {
+      // Only auto-add to history if confirmation is disabled AND addToHistory is enabled
+      // If confirmation is enabled, history will be added when user clicks Save
+      if (settings?.addToHistory && !settings?.showConfirmDialog) {
         try {
           await bsHistoryEl?.add(barcodeValue);
           // Open history and scroll the new item into view so countdown is visible immediately
@@ -568,12 +564,15 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
             throw new Error('No barcode detected');
           }
 
+          // Show barcode result at bottom of file view
           createResult(fileResultsEl, barcodeValue);
 
           // Try to fetch item info for file-scanned barcodes as well
-          handleFetchedItemInfo(barcodeValue, filePanel, barcodeFormat);
+          // This will show product info inline and handle confirmation dialog if enabled
+          await handleFetchedItemInfo(barcodeValue, filePanel, barcodeFormat);
 
-          if (settings?.addToHistory) {
+          // Only auto-add to history if confirmation is disabled AND addToHistory is enabled
+          if (settings?.addToHistory && !settings?.showConfirmDialog) {
             try {
               await bsHistoryEl?.add(barcodeValue);
               if (historyDialog) {
@@ -938,30 +937,30 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
     const enhancedScanData = evt.detail;
     
     if (enhancedScanData) {
+      // Save to Firestore
       await saveScanData(enhancedScanData);
       
+      // Add to history (always add when user confirms save)
       const [, settings] = await getSettings();
-      if (settings?.addToHistory) {
-        try {
-          await bsHistoryEl?.add(enhancedScanData.value);
-          if (historyDialog) {
-            historyDialog.open = true;
-            setTimeout(() => {
-              try {
-                const li = bsHistoryEl?.shadowRoot?.querySelector(
-                  `li[data-value="${enhancedScanData.value}"]`
-                );
-                li?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                li?.classList?.add('highlight');
-                setTimeout(() => li?.classList?.remove('highlight'), 2000);
-              } catch (e) {
-                // ignore
-              }
-            }, 50);
-          }
-        } catch (e) {
-          // ignore
+      try {
+        await bsHistoryEl?.add(enhancedScanData.value);
+        if (settings?.addToHistory && historyDialog) {
+          historyDialog.open = true;
+          setTimeout(() => {
+            try {
+              const li = bsHistoryEl?.shadowRoot?.querySelector(
+                `li[data-value="${enhancedScanData.value}"]`
+              );
+              li?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              li?.classList?.add('highlight');
+              setTimeout(() => li?.classList?.remove('highlight'), 2000);
+            } catch (e) {
+              // ignore
+            }
+          }, 50);
         }
+      } catch (e) {
+        log.warn('Error adding to history:', e);
       }
 
       toastify('Scan saved successfully!', { variant: 'success' });
@@ -974,6 +973,13 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
   document.addEventListener('scan-confirm-cancel', () => {
     scanConfirmDialog.open = false;
     pendingScanData = null;
+  });
+
+  document.addEventListener('scan-confirm-requires-auth', () => {
+    scanConfirmDialog.open = false;
+    if (authDialog) {
+      authDialog.open = true;
+    }
   });
 
   document.addEventListener('product-details-close', () => {
