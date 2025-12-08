@@ -20,14 +20,41 @@ if (typeof window !== 'undefined' && window.__FIREBASE_CONFIG__) {
   // Allow developers to drop a script with `window.__FIREBASE_CONFIG__` for quick local setup
   firebaseConfig = window.__FIREBASE_CONFIG__;
 } else {
-  firebaseConfig = {
-    apiKey: process.env.FIREBASE_API_KEY || 'YOUR_API_KEY',
-    authDomain: process.env.FIREBASE_AUTH_DOMAIN || 'YOUR_AUTH_DOMAIN',
-    projectId: process.env.FIREBASE_PROJECT_ID || 'YOUR_PROJECT_ID',
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'YOUR_STORAGE_BUCKET',
-    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || 'YOUR_MESSAGING_SENDER_ID',
-    appId: process.env.FIREBASE_APP_ID || 'YOUR_APP_ID'
-  };
+  // Get env vars, but validate them before using
+  const envApiKey = process.env.FIREBASE_API_KEY;
+  const envProjectId = process.env.FIREBASE_PROJECT_ID;
+  
+  // Only use env vars if they look valid (not placeholders, not empty, reasonable length)
+  const hasValidEnvConfig = envApiKey && 
+                            envProjectId && 
+                            envApiKey.length >= 20 && 
+                            !envApiKey.includes('YOUR_') &&
+                            !envApiKey.includes('example') &&
+                            !envApiKey.includes('placeholder') &&
+                            envProjectId.length >= 3 &&
+                            !envProjectId.includes('YOUR_');
+  
+  if (hasValidEnvConfig) {
+    // Use environment variables if they look valid
+    firebaseConfig = {
+      apiKey: envApiKey,
+      authDomain: process.env.FIREBASE_AUTH_DOMAIN || '',
+      projectId: envProjectId,
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET || '',
+      messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || '',
+      appId: process.env.FIREBASE_APP_ID || ''
+    };
+  } else {
+    // Use placeholders if env vars are invalid or missing
+    firebaseConfig = {
+      apiKey: 'YOUR_API_KEY',
+      authDomain: 'YOUR_AUTH_DOMAIN',
+      projectId: 'YOUR_PROJECT_ID',
+      storageBucket: 'YOUR_STORAGE_BUCKET',
+      messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
+      appId: 'YOUR_APP_ID'
+    };
+  }
 }
 
 // Check if Firebase is configured with valid-looking values
