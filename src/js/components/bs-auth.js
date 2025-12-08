@@ -302,12 +302,12 @@ template.innerHTML = /* html */ `
       </div>
 
       <div class="auth-tabs">
-        <button class="auth-tab" data-tab="signup">Sign Up</button>
+        <button class="auth-tab active" data-tab="signup">Sign Up</button>
         <button class="auth-tab" data-tab="signin">Sign In</button>
-        <button class="auth-tab active" data-tab="anonymous">Quick Start</button>
+        <button class="auth-tab" data-tab="anonymous">Quick Start</button>
       </div>
 
-      <div class="auth-form" id="signupForm">
+      <div class="auth-form active" id="signupForm">
         <form>
           <div class="form-group">
             <label for="signupEmail">Email</label>
@@ -332,11 +332,11 @@ template.innerHTML = /* html */ `
         <form>
           <div class="form-group">
             <label for="signinEmail">Email</label>
-            <input type="email" id="signinEmail" required autocomplete="email">
+            <input type="email" id="signinEmail" required autocomplete="email" placeholder="your@email.com">
           </div>
           <div class="form-group">
             <label for="signinPassword">Password</label>
-            <input type="password" id="signinPassword" required autocomplete="current-password">
+            <input type="password" id="signinPassword" required autocomplete="current-password" placeholder="Your password">
           </div>
           <div id="signinError" class="error-message" hidden></div>
           <button type="submit" class="btn" id="signinBtn">Sign In</button>
@@ -345,15 +345,12 @@ template.innerHTML = /* html */ `
         <button type="button" class="btn btn-secondary" id="signinAnonymousBtn">Sign In Anonymously</button>
       </div>
 
-      <div class="auth-form active" id="anonymousForm">
+      <div class="auth-form" id="anonymousForm">
         <div class="info-message">
           <strong>Quick Start</strong><br>
-          Sign in anonymously to get started immediately, or create an account with email for better features.
+          Sign in anonymously to get started immediately, or use the <strong>Sign Up</strong> tab to create an account with email for better features.
         </div>
         <button type="button" class="btn" id="anonymousBtn">Sign In Anonymously</button>
-        <p style="text-align:center;margin-top:0.75rem;font-size:0.85rem;color:var(--text-muted);">
-          Or use the <strong>Sign Up</strong> tab to create an account with email
-        </p>
       </div>
     </div>
   </div>
