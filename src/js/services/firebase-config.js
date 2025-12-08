@@ -58,6 +58,7 @@ function _initializeFirebase(configOverride = null) {
     return { error: new Error('Firebase not configured') };
   }
 
+  // If we already have valid instances, return success
   if (app && auth && db) {
     return { error: null };
   }
@@ -69,6 +70,28 @@ function _initializeFirebase(configOverride = null) {
     return { error: null };
   } catch (error) {
     console.error('Error initializing Firebase:', error);
+    
+    // If API key is invalid, reset config so user can reconfigure
+    if (error.code === 'auth/api-key-not-valid' || 
+        error.message?.includes('api-key-not-valid') ||
+        error.message?.includes('API key not valid')) {
+      // Reset to default invalid config
+      firebaseConfig = {
+        apiKey: 'YOUR_API_KEY',
+        authDomain: 'YOUR_AUTH_DOMAIN',
+        projectId: 'YOUR_PROJECT_ID',
+        storageBucket: 'YOUR_STORAGE_BUCKET',
+        messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
+        appId: 'YOUR_APP_ID'
+      };
+      app = null;
+      auth = null;
+      db = null;
+      return { 
+        error: new Error('Invalid Firebase API key. Please check your configuration and try again.') 
+      };
+    }
+    
     return { error };
   }
 }

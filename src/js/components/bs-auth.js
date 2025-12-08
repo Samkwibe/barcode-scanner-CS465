@@ -552,7 +552,16 @@ class BSAuth extends HTMLElement {
     const { error } = initFirebaseRuntime(parsed);
     if (error) {
       log.error('Error initializing Firebase with provided config:', error);
-      toastify('Failed to initialize Firebase. Check console for details.', { variant: 'danger' });
+      
+      // Show specific error message for invalid API key
+      let errorMessage = 'Failed to initialize Firebase. ';
+      if (error.message?.includes('API key') || error.message?.includes('api-key-not-valid')) {
+        errorMessage = 'Invalid Firebase API key. Please check your configuration and make sure all values are correct.';
+      } else {
+        errorMessage += error.message || 'Check console for details.';
+      }
+      
+      toastify(errorMessage, { variant: 'danger', duration: 6000 });
       return;
     }
 

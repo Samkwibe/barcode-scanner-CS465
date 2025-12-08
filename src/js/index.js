@@ -35,7 +35,16 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
   // Initialize Firebase Authentication and Firestore
   try {
     // If a runtime config was injected into `window.__FIREBASE_CONFIG__`, initialize Firebase now.
-    try { initFirebaseRuntime(); } catch (e) { /* ignore */ }
+    try { 
+      const { error } = initFirebaseRuntime();
+      if (error && (error.message?.includes('API key') || error.code === 'auth/api-key-not-valid')) {
+        log.warn('Firebase API key is invalid. User needs to configure Firebase.');
+        // Don't proceed with Firebase initialization if API key is invalid
+      }
+    } catch (e) { 
+      log.warn('Error checking Firebase config:', e);
+    }
+    
     if (isFirebaseConfigured()) {
       log.info('Initializing Firebase...');
       await initFirestore();
