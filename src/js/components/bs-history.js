@@ -82,11 +82,23 @@ const styles = /* css */ `
   }
 
   .item-countdown {
-    padding: 0.125rem 0.5rem;
+    padding: 0.375rem 0.75rem;
     border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 500;
+    font-size: 0.85rem;
+    font-weight: 600;
     white-space: nowrap;
+    min-width: 120px;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+  }
+
+  .item-countdown:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   }
 
   .item-countdown.fresh {
@@ -1202,11 +1214,25 @@ class BSHistory extends HTMLElement {
         effectivePreNotify = this.#PRE_NOTIFY_THRESHOLD_MS;
       }
 
-      // Update countdown UI
+      // Update countdown UI with status classes
       const countdownEls = this.shadowRoot?.querySelectorAll('.history-countdown') || [];
       countdownEls.forEach(el => {
         const expiresAt = Number(el.dataset.expiresAt) || now;
-        el.textContent = this.#formatRemaining(expiresAt - now);
+        const timeLeft = expiresAt - now;
+        const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+        
+        // Update text
+        el.textContent = this.#formatRemaining(timeLeft);
+        
+        // Update status classes
+        el.classList.remove('fresh', 'expiring', 'expired');
+        if (timeLeft <= 0) {
+          el.classList.add('expired');
+        } else if (timeLeft <= SEVEN_DAYS) {
+          el.classList.add('expiring');
+        } else {
+          el.classList.add('fresh');
+        }
       });
       // Check for items that are nearing expiry and those that reached expiry
       let updated = false;
@@ -1270,17 +1296,18 @@ class BSHistory extends HTMLElement {
   }
 
   #formatRemaining(ms) {
-    if (ms <= 0) return 'Expired';
+    if (ms <= 0) return '⏰ Expired';
     const seconds = Math.floor(ms / 1000);
     const days = Math.floor(seconds / (24 * 3600));
     const hours = Math.floor((seconds % (24 * 3600)) / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
 
-    if (days > 0) return `${days}d ${hours}h ${minutes}m left`;
-    if (hours > 0) return `${hours}h ${minutes}m ${secs}s left`;
-    if (minutes > 0) return `${minutes}m ${secs}s left`;
-    return `${secs}s left`;
+    // Add emoji indicators for better visibility
+    if (days > 0) return `⏳ ${days}d ${hours}h ${minutes}m`;
+    if (hours > 0) return `⏳ ${hours}h ${minutes}m ${secs}s`;
+    if (minutes > 0) return `⚠️ ${minutes}m ${secs}s`;
+    return `🔴 ${secs}s`;
   }
 
   async #notifyItemExpired(item) {
