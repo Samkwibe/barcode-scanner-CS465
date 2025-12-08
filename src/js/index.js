@@ -956,13 +956,27 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
     const enhancedScanData = evt.detail;
     
     if (enhancedScanData) {
-      // Save to Firestore
+      // Save to Firestore (includes expiration date and notes)
       await saveScanData(enhancedScanData);
       
-      // Add to history (always add when user confirms save)
+      // Add to history with custom expiration date
       const [, settings] = await getSettings();
       try {
-        await bsHistoryEl?.add(enhancedScanData.value);
+        // Create history item with custom expiration
+        const historyItem = {
+          value: enhancedScanData.value,
+          addedAt: Date.now(),
+          expiresAt: enhancedScanData.expiresAt || (Date.now() + 30 * 24 * 60 * 60 * 1000),
+          title: enhancedScanData.title || '',
+          brand: enhancedScanData.brand || '',
+          description: enhancedScanData.description || '',
+          notes: enhancedScanData.notes || '',
+          format: enhancedScanData.format || ''
+        };
+        
+        // Add to history using the add method (it will handle the expiration)
+        await bsHistoryEl?.add(historyItem);
+        
         if (settings?.addToHistory && historyDialog) {
           historyDialog.open = true;
           setTimeout(() => {

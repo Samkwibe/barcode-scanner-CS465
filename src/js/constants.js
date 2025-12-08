@@ -37,7 +37,10 @@ if (typeof process !== 'undefined' && process?.env?.ITEM_INFO_PROXY_URL) {
   _itemInfoProxyUrl = process.env.ITEM_INFO_PROXY_URL;
 } else if (typeof window !== 'undefined') {
   const host = window.location.hostname;
-  if (host === 'localhost' || host === '127.0.0.1') {
+  // Use Firebase Cloud Function if on Firebase Hosting
+  if (host.includes('firebaseapp.com') || host.includes('web.app')) {
+    _itemInfoProxyUrl = '/api/upc';
+  } else if (host === 'localhost' || host === '127.0.0.1') {
     _itemInfoProxyUrl = 'http://localhost:8787';
   }
 }

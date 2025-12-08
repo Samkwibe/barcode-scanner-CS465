@@ -21,14 +21,18 @@ export async function fetchItemInfo(barcode) {
   }
   // Determine whether to use a proxy. Preference order:
   // 1) `ITEM_INFO_PROXY_URL` (build-time/env)
-  // 2) If running in browser on localhost, default to `http://localhost:8787` (dev proxy)
-  // 3) Otherwise call the public API directly
+  // 2) If running on Firebase Hosting, use Firebase Cloud Function
+  // 3) If running in browser on localhost, default to `http://localhost:8787` (dev proxy)
+  // 4) Otherwise call the public API directly
   const isBrowser = typeof window !== 'undefined' && window?.location;
   let finalProxyUrl = ITEM_INFO_PROXY_URL || '';
 
   if (!finalProxyUrl && isBrowser) {
     const host = window.location.hostname;
-    if (host === 'localhost' || host === '127.0.0.1') {
+    // Use Firebase Cloud Function if on Firebase Hosting
+    if (host.includes('firebaseapp.com') || host.includes('web.app')) {
+      finalProxyUrl = '/api/upc';
+    } else if (host === 'localhost' || host === '127.0.0.1') {
       finalProxyUrl = 'http://localhost:8787';
     }
   }
@@ -39,6 +43,31 @@ export async function fetchItemInfo(barcode) {
   // If calling the API directly (no proxy), send Authorization header.
   if (!useProxy && ITEM_INFO_API_KEY) {
     headers['Authorization'] = `Bearer ${ITEM_INFO_API_KEY}`;
+  }
+
+  // If using Firebase Cloud Function proxy, use query parameter format
+  if (useProxy && finalProxyUrl.includes('/api/upc')) {
+    // Firebase function expects: /api/upc?barcode=123
+    const url = `${base}?barcode=${encodeURIComponent(barcode)}`;
+    try {
+      const res = await fetch(url, { method: 'GET', headers });
+      if (!res.ok) {
+        log.warn('API lookup failed:', res.status);
+        return null;
+      }
+      const data = await res.json();
+      // Handle different API response formats
+      if (data.title || data.name || data.alias) {
+        return data;
+      }
+      // Some APIs return data in a nested structure
+      if (data.product) return data.product;
+      if (data.data) return data.data;
+      return data;
+    } catch (err) {
+      log.warn('Request failed', err);
+      return null;
+    }
   }
 
   // Try endpoints in this order to support both API styles:

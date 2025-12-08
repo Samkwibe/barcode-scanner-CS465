@@ -458,18 +458,33 @@ class BSHistory extends HTMLElement {
           const { error, scans } = await getUserScans();
           if (!error && scans) {
             // Convert Firestore scans to history format
-            const firestoreScans = scans.map(scan => ({
-              value: scan.value || '',
-              addedAt: scan.scannedAt ? scan.scannedAt.getTime() : Date.now(),
-              expiresAt: scan.scannedAt ? scan.scannedAt.getTime() + BSHistory.#getDefaultExpiryMs() : Date.now() + BSHistory.#getDefaultExpiryMs(),
-              notified: false,
-              preNotified: false,
-              title: scan.title || '',
-              brand: scan.brand || '',
-              description: scan.description || '',
-              format: scan.format || '',
-              firestoreId: scan.id || null
-            }));
+            const firestoreScans = scans.map(scan => {
+              // Use custom expiration date if available, otherwise calculate from scannedAt
+              let expiresAt;
+              if (scan.expiresAt && scan.expiresAt instanceof Date) {
+                expiresAt = scan.expiresAt.getTime();
+              } else if (scan.expiresAt && typeof scan.expiresAt === 'number') {
+                expiresAt = scan.expiresAt;
+              } else {
+                // Fallback: use default expiry from scannedAt
+                const scannedAt = scan.scannedAt instanceof Date ? scan.scannedAt.getTime() : Date.now();
+                expiresAt = scannedAt + BSHistory.#getDefaultExpiryMs();
+              }
+              
+              return {
+                value: scan.value || '',
+                addedAt: scan.scannedAt instanceof Date ? scan.scannedAt.getTime() : Date.now(),
+                expiresAt: expiresAt,
+                notified: false,
+                preNotified: false,
+                title: scan.title || '',
+                brand: scan.brand || '',
+                description: scan.description || '',
+                notes: scan.notes || '',
+                format: scan.format || '',
+                firestoreId: scan.id || null
+              };
+            });
             
             log.info(`Loaded ${firestoreScans.length} scans from Firestore`);
             
@@ -708,10 +723,17 @@ class BSHistory extends HTMLElement {
     const normalized = (history || []).map(h =>
       typeof h === 'string'
         ? { value: h, addedAt: Date.now(), expiresAt: Date.now() + BSHistory.#getDefaultExpiryMs(), notified: false, preNotified: false }
-        : { value: h.value ?? h.barcode ?? '', addedAt: h.addedAt ?? Date.now(), expiresAt: h.expiresAt ?? (h.addedAt ? h.addedAt + BSHistory.#getDefaultExpiryMs() : Date.now() + BSHistory.#getDefaultExpiryMs()), notified: Boolean(h.notified), preNotified: Boolean(h.preNotified) }
+        : { value: h.value ?? h.barcode ?? '', addedAt: h.addedAt ?? Date.now(), expiresAt: h.expiresAt ?? (h.addedAt ? h.addedAt + BSHistory.#getDefaultExpiryMs() : Date.now() + BSHistory.#getDefaultExpiryMs()), notified: Boolean(h.notified), preNotified: Boolean(h.preNotified), title: h.title || '', brand: h.brand || '', description: h.description || '', notes: h.notes || '', format: h.format || '' }
     );
 
+    // Handle both string and object inputs
     const value = typeof item === 'string' ? item : item.value;
+    const customExpiresAt = typeof item === 'object' && item.expiresAt ? item.expiresAt : null;
+    const itemTitle = typeof item === 'object' ? item.title : '';
+    const itemBrand = typeof item === 'object' ? item.brand : '';
+    const itemDescription = typeof item === 'object' ? item.description : '';
+    const itemNotes = typeof item === 'object' ? item.notes : '';
+    const itemFormat = typeof item === 'object' ? item.format : '';
 
     const existing = normalized.find(h => h.value === value);
     // If item already exists
@@ -757,9 +779,14 @@ class BSHistory extends HTMLElement {
     const newItem = {
       value,
       addedAt,
-      expiresAt: addedAt + BSHistory.#getDefaultExpiryMs(),
+      expiresAt: customExpiresAt || (addedAt + BSHistory.#getDefaultExpiryMs()),
       notified: false,
-      preNotified: false
+      preNotified: false,
+      title: itemTitle,
+      brand: itemBrand,
+      description: itemDescription,
+      notes: itemNotes,
+      format: itemFormat
     };
 
     const data = [...normalized, newItem];
@@ -934,18 +961,33 @@ class BSHistory extends HTMLElement {
           useFirebase = true;
           const { error, scans } = await getUserScans();
           if (!error && scans) {
-            const firestoreScans = scans.map(scan => ({
-              value: scan.value || '',
-              addedAt: scan.scannedAt ? scan.scannedAt.getTime() : Date.now(),
-              expiresAt: scan.scannedAt ? scan.scannedAt.getTime() + BSHistory.#getDefaultExpiryMs() : Date.now() + BSHistory.#getDefaultExpiryMs(),
-              notified: false,
-              preNotified: false,
-              title: scan.title || '',
-              brand: scan.brand || '',
-              description: scan.description || '',
-              format: scan.format || '',
-              firestoreId: scan.id || null
-            }));
+            const firestoreScans = scans.map(scan => {
+              // Use custom expiration date if available, otherwise calculate from scannedAt
+              let expiresAt;
+              if (scan.expiresAt && scan.expiresAt instanceof Date) {
+                expiresAt = scan.expiresAt.getTime();
+              } else if (scan.expiresAt && typeof scan.expiresAt === 'number') {
+                expiresAt = scan.expiresAt;
+              } else {
+                // Fallback: use default expiry from scannedAt
+                const scannedAt = scan.scannedAt instanceof Date ? scan.scannedAt.getTime() : Date.now();
+                expiresAt = scannedAt + BSHistory.#getDefaultExpiryMs();
+              }
+              
+              return {
+                value: scan.value || '',
+                addedAt: scan.scannedAt instanceof Date ? scan.scannedAt.getTime() : Date.now(),
+                expiresAt: expiresAt,
+                notified: false,
+                preNotified: false,
+                title: scan.title || '',
+                brand: scan.brand || '',
+                description: scan.description || '',
+                notes: scan.notes || '',
+                format: scan.format || '',
+                firestoreId: scan.id || null
+              };
+            });
             
             const localNormalized = (rawHistory || []).map(item => {
               if (!item) return null;

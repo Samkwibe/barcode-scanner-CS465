@@ -38,17 +38,33 @@ exports.upc = functions.https.onRequest(async (req, res) => {
     
     let targetUrl = '';
     
-    // Determine target URL based on path
-    if (path.startsWith('/product/')) {
-      const id = path.replace('/product/', '');
+    // Support both path-based and query parameter-based requests
+    // Path-based: /api/upc/product/123 or /api/upc/products/123
+    // Query-based: /api/upc?barcode=123 or /api/upc?q=search
+    const barcode = query.barcode;
+    const search = query.q;
+    
+    let targetUrl = '';
+    
+    if (barcode) {
+      // Query parameter: ?barcode=123
+      targetUrl = `${UPC_API_BASE}/product/${encodeURIComponent(barcode)}`;
+    } else if (search) {
+      // Query parameter: ?q=search
+      targetUrl = `${UPC_API_BASE}/search?q=${encodeURIComponent(search)}`;
+    } else if (path.startsWith('/product/')) {
+      // Path-based: /product/123
+      const id = path.replace('/product/', '').replace(/^\//, '');
       targetUrl = `${UPC_API_BASE}/product/${encodeURIComponent(id)}`;
     } else if (path.startsWith('/products/')) {
-      const id = path.replace('/products/', '');
+      // Path-based: /products/123
+      const id = path.replace('/products/', '').replace(/^\//, '');
       targetUrl = `${UPC_API_BASE}/products/${encodeURIComponent(id)}`;
     } else if (path === '/search' && query.q) {
+      // Path-based: /search?q=search
       targetUrl = `${UPC_API_BASE}/search?q=${encodeURIComponent(query.q)}`;
     } else {
-      return res.status(400).json({ error: 'Invalid path' });
+      return res.status(400).json({ error: 'Invalid request. Provide barcode or q parameter, or use /product/{id} path' });
     }
 
     // Make request to UPC API

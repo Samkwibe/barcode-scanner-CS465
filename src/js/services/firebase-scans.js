@@ -76,6 +76,18 @@ export async function saveScan(scanData) {
   }
 
   try {
+    // Calculate expiration date - use custom date if provided, otherwise default
+    let expirationDate = null;
+    if (scanData.expiresAt && typeof scanData.expiresAt === 'number') {
+      expirationDate = Timestamp.fromMillis(scanData.expiresAt);
+    } else if (scanData.expiresAt && scanData.expiresAt instanceof Date) {
+      expirationDate = Timestamp.fromDate(scanData.expiresAt);
+    } else {
+      // Default: 30 days from now (or use setting if available)
+      const defaultExpiryMs = 30 * 24 * 60 * 60 * 1000;
+      expirationDate = Timestamp.fromMillis(Date.now() + defaultExpiryMs);
+    }
+
     const scan = {
       userId,
       value: scanData.value,
@@ -83,6 +95,8 @@ export async function saveScan(scanData) {
       title: scanData.title || '',
       brand: scanData.brand || '',
       description: scanData.description || '',
+      notes: scanData.notes || '',
+      expiresAt: expirationDate,
       metadata: scanData.metadata || {},
       scannedAt: Timestamp.now(),
       createdAt: Timestamp.now(),
@@ -95,15 +109,17 @@ export async function saveScan(scanData) {
     // Also save to local storage as a backup
     try {
       const [, history = []] = await getHistory();
+      const expiresAtMs = scanData.expiresAt || (Date.now() + 30 * 24 * 60 * 60 * 1000);
       const localScan = {
         value: scanData.value,
         addedAt: Date.now(),
-        expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+        expiresAt: expiresAtMs,
         notified: false,
         preNotified: false,
         title: scanData.title || '',
         brand: scanData.brand || '',
         description: scanData.description || '',
+        notes: scanData.notes || '',
         format: scanData.format || '',
         firestoreId: docRef.id
       };
@@ -156,10 +172,13 @@ export async function getUserScans(maxResults = 100) {
     const scans = [];
 
     querySnapshot.forEach(doc => {
+      const data = doc.data();
       scans.push({
         id: doc.id,
-        ...doc.data(),
-        scannedAt: doc.data().scannedAt?.toDate() || new Date()
+        ...data,
+        scannedAt: data.scannedAt?.toDate() || new Date(),
+        expiresAt: data.expiresAt?.toDate() || null,
+        notes: data.notes || ''
       });
     });
 

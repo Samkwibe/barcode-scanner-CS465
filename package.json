@@ -14,7 +14,8 @@
     "build": "npm-run-all clean build:parcel",
     "postbuild": "npm run generateSW",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist",
+    "deploy:firebase": "npm run build && firebase deploy --only hosting"
   },
   "repository": {
     "type": "git",
