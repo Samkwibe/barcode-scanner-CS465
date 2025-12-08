@@ -34,47 +34,56 @@ import { isFirebaseConfigured, initFirebaseRuntime } from './services/firebase-c
 (async function () {
   // Initialize Firebase Authentication and Firestore
   try {
-    // If a runtime config was injected into `window.__FIREBASE_CONFIG__`, initialize Firebase now.
-    try { 
-      const { error } = initFirebaseRuntime();
-      if (error && (error.message?.includes('API key') || error.code === 'auth/api-key-not-valid')) {
-        log.warn('Firebase API key is invalid. User needs to configure Firebase.');
-        // Don't proceed with Firebase initialization if API key is invalid
-      }
-    } catch (e) { 
-      log.warn('Error checking Firebase config:', e);
-    }
-    
+    // Only try to initialize if Firebase looks properly configured
+    // This prevents errors from invalid API keys in environment variables
     if (isFirebaseConfigured()) {
-      log.info('Initializing Firebase...');
-      await initFirestore();
+      // If a runtime config was injected into `window.__FIREBASE_CONFIG__`, initialize Firebase now.
+      try { 
+        const { error } = initFirebaseRuntime();
+        if (error) {
+          if (error.message?.includes('API key') || error.code === 'auth/api-key-not-valid') {
+            log.warn('Firebase API key is invalid. User needs to configure Firebase.');
+            // Don't proceed with Firebase initialization if API key is invalid
+            // The error handler will reset the config, so isFirebaseConfigured() will return false
+          } else {
+            log.warn('Firebase initialization error:', error);
+          }
+          // Skip Firebase initialization if there's an error
+        } else {
+          // Only proceed if initialization was successful
+          log.info('Initializing Firebase...');
+          await initFirestore();
 
-      // Initialize auth and automatically sign in anonymously if no user
-      const user = await initAuth();
-      if (!user) {
-        log.info('No user signed in, signing in anonymously...');
-        await signInAnonymous();
-      }
+          // Initialize auth and automatically sign in anonymously if no user
+          const user = await initAuth();
+          if (!user) {
+            log.info('No user signed in, signing in anonymously...');
+            await signInAnonymous();
+          }
 
-      // Sync any pending scans from offline mode
-      const { syncedCount } = await syncPendingScans();
-      if (syncedCount > 0) {
-        toastify(`Synced ${syncedCount} scans from offline mode`, { variant: 'success' });
-      }
+          // Sync any pending scans from offline mode
+          const { syncedCount } = await syncPendingScans();
+          if (syncedCount > 0) {
+            toastify(`Synced ${syncedCount} scans from offline mode`, { variant: 'success' });
+          }
 
-      // Listen for online/offline events
-      window.addEventListener('online', async () => {
-        log.info('Back online, syncing pending scans...');
-        const { syncedCount } = await syncPendingScans();
-        if (syncedCount > 0) {
-          toastify(`Synced ${syncedCount} scans`, { variant: 'success' });
+          // Listen for online/offline events
+          window.addEventListener('online', async () => {
+            log.info('Back online, syncing pending scans...');
+            const { syncedCount } = await syncPendingScans();
+            if (syncedCount > 0) {
+              toastify(`Synced ${syncedCount} scans`, { variant: 'success' });
+            }
+          });
+
+          window.addEventListener('offline', () => {
+            log.info('Offline mode - scans will be saved locally');
+            toastify('Offline mode - scans will sync when online', { variant: 'warning' });
+          });
         }
-      });
-
-      window.addEventListener('offline', () => {
-        log.info('Offline mode - scans will be saved locally');
-        toastify('Offline mode - scans will sync when online', { variant: 'warning' });
-      });
+      } catch (e) { 
+        log.warn('Error initializing Firebase:', e);
+      }
     } else {
       log.info('Firebase not configured - using local storage only');
     }

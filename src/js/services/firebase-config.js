@@ -30,10 +30,36 @@ if (typeof window !== 'undefined' && window.__FIREBASE_CONFIG__) {
   };
 }
 
-// Check if Firebase is configured
+// Check if Firebase is configured with valid-looking values
 const isFirebaseConfigured = () => {
-  return firebaseConfig.apiKey !== 'YOUR_API_KEY' && 
-         firebaseConfig.projectId !== 'YOUR_PROJECT_ID';
+  if (!firebaseConfig) return false;
+  
+  // Check for placeholder values
+  if (firebaseConfig.apiKey === 'YOUR_API_KEY' || 
+      firebaseConfig.projectId === 'YOUR_PROJECT_ID' ||
+      firebaseConfig.apiKey === '' ||
+      firebaseConfig.projectId === '') {
+    return false;
+  }
+  
+  // Check if API key looks valid (Firebase API keys are typically long alphanumeric strings)
+  // Invalid keys might be short or contain obvious placeholder text
+  if (firebaseConfig.apiKey.length < 20 || 
+      firebaseConfig.apiKey.includes('YOUR_') ||
+      firebaseConfig.apiKey.includes('example') ||
+      firebaseConfig.apiKey.includes('placeholder')) {
+    return false;
+  }
+  
+  // Check if project ID looks valid
+  if (firebaseConfig.projectId.length < 3 ||
+      firebaseConfig.projectId.includes('YOUR_') ||
+      firebaseConfig.projectId.includes('example') ||
+      firebaseConfig.projectId.includes('placeholder')) {
+    return false;
+  }
+  
+  return true;
 };
 
 // Initialize Firebase only if configured
