@@ -200,6 +200,12 @@ const styles = /* css */ `
     color: #991b1b;
   }
 
+  .info-message strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 1.05rem;
+  }
+
   .status-item {
     display: flex;
     align-items: center;
@@ -286,11 +292,11 @@ template.innerHTML = /* html */ `
       </div>
 
       <div class="info-message" id="firebaseNotConfigured" hidden>
-        <strong>Firebase Not Configured</strong><br>
-        Your scans are being saved locally. To sync across devices, configure Firebase in your project.
-        <div style="margin-top:0.5rem;">
-          <small>Paste your Firebase web app config (JSON) below and click Configure to enable auth & syncing.</small>
-          <textarea id="firebaseConfigInput" style="width:100%;height:6rem;margin-top:0.5rem;font-family:monospace;" placeholder='{"apiKey":"...","authDomain":"...","projectId":"...","storageBucket":"...","messagingSenderId":"...","appId":"..."}'></textarea>
+        <strong>⚠️ Firebase Required</strong><br>
+        <strong>You must configure Firebase to use this app.</strong> All scans are saved to Firestore and require an account.
+        <div style="margin-top:0.75rem;">
+          <small>Paste your Firebase web app config (JSON) below and click Configure to get started.</small>
+          <textarea id="firebaseConfigInput" style="width:100%;height:6rem;margin-top:0.5rem;font-family:monospace;padding:0.5rem;" placeholder='{"apiKey":"...","authDomain":"...","projectId":"...","storageBucket":"...","messagingSenderId":"...","appId":"..."}'></textarea>
           <div style="display:flex;gap:0.5rem;margin-top:0.5rem;"><button type="button" class="btn" id="firebaseConfigureBtn">Configure Firebase</button><button type="button" class="btn btn-secondary" id="firebaseClearBtn">Clear</button></div>
         </div>
       </div>
@@ -298,14 +304,18 @@ template.innerHTML = /* html */ `
       <div class="auth-tabs">
         <button class="auth-tab active" data-tab="anonymous">Quick Start</button>
         <button class="auth-tab" data-tab="signin">Sign In</button>
-        <button class="auth-tab" data-tab="signup">Sign Up</button>
+        <button class="auth-tab" data-tab="signup">Create Account</button>
       </div>
 
       <div class="auth-form active" id="anonymousForm">
         <div class="info-message">
-          Start scanning immediately without creating an account. Your scans will be saved to your device and synced to the cloud.
+          <strong>Create an account to get started!</strong><br>
+          You need an account to save and view your scans. All data is securely stored in Firestore and synced across your devices.
         </div>
-        <button type="button" class="btn" id="anonymousBtn">Continue Without Account</button>
+        <button type="button" class="btn" id="anonymousBtn">Sign In Anonymously</button>
+        <p style="text-align:center;margin-top:0.75rem;font-size:0.85rem;color:var(--text-muted);">
+          Or create an account with email for better features
+        </p>
       </div>
 
       <div class="auth-form" id="signinForm">
@@ -322,7 +332,7 @@ template.innerHTML = /* html */ `
           <button type="submit" class="btn" id="signinBtn">Sign In</button>
         </form>
         <div class="divider">or</div>
-        <button type="button" class="btn btn-secondary" id="signinAnonymousBtn">Continue Without Account</button>
+        <button type="button" class="btn btn-secondary" id="signinAnonymousBtn">Sign In Anonymously</button>
       </div>
 
       <div class="auth-form" id="signupForm">
@@ -343,7 +353,7 @@ template.innerHTML = /* html */ `
           <button type="submit" class="btn" id="signupBtn">Create Account</button>
         </form>
         <div class="divider">or</div>
-        <button type="button" class="btn btn-secondary" id="signupAnonymousBtn">Continue Without Account</button>
+        <button type="button" class="btn btn-secondary" id="signupAnonymousBtn">Sign In Anonymously</button>
       </div>
     </div>
   </div>
